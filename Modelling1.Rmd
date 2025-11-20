@@ -341,6 +341,12 @@ collect_predictions(members_final) %>%
 members_final
 ```
 
+```{r}
+members_final %>%
+  pull(.workflow)
+
+```
+
 
 
 #improved model
