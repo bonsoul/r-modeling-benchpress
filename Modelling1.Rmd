@@ -284,4 +284,124 @@ rf_rs
 
 ```
 
+```{r}
+collect_metrics(glm_rs)
+collect_metrics(rf_rs)
+```
+
+```{r}
+glm_rs %>% 
+  conf_mat_resampled()
+```
+
+
+
+```{r}
+glm_rs %>%
+  collect_predictions() %>%
+  group_by(id)
+```
+
+```{r}
+glm_rs %>%
+  collect_predictions() %>%
+  group_by(id) %>%
+  roc_curve(died, .pred_died) %>%
+  autoplot()
+```
+
+```{r}
+rf_rs %>%
+  collect_predictions() %>%
+  group_by(id) %>%
+  roc_curve(died, .pred_died) %>%
+  autoplot()
+```
+
+```{r}
+member
+```
+
+
+```{r}
+members_final <- members_wf %>%
+  add_model(glm_spec) %>%
+  last_fit(members_split)
+
+```
+
+```{r}
+collect_metrics(members_final)
+
+collect_predictions(members_final) %>%
+  conf_mat(died, .pred_class)
+```
+
+```{r}
+members_final
+```
+
+
+
+#improved model
+
+```{r}
+members_rec <- recipe(died ~ ., data = members_train) %>% 
+  step_mutate(across(where(is.logical), ~ as.numeric(.))) %>% 
+  step_impute_median(all_numeric_predictors()) %>% 
+  step_other(all_nominal_predictors(), threshold = 0.05) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_smote(died)
+
+```
+
+
+```{r}
+members_rec <- members_rec %>%
+  step_normalize(all_numeric_predictors())
+
+```
+
+```{r}
+members_rec <- members_rec %>% 
+  step_interact( ~ age:success + age:hired)
+
+```
+
+
+```{r}
+members_rec <- members_rec %>% 
+  step_poly(age, degree = 2)
+
+```
+
+```{r}
+log_spec <- logistic_reg(
+  penalty = tune(), 
+  mixture = tune()
+) %>% 
+  set_engine("glmnet") %>% 
+  set_mode("classification")
+
+```
+
+```{r}
+log_params <- parameters(log_spec)
+
+log_grid <- grid_regular(log_params, levels = 5)
+
+log_wf <- workflow() %>% 
+  add_model(log_spec) %>% 
+  add_recipe(members_rec)
+
+log_tuned <- tune_grid(
+  log_wf,
+  resamples = members_folds,
+  grid = log_grid,
+  metrics = metric_set(roc_auc, accuracy)
+)
+
+```
+
+
 
