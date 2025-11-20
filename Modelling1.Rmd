@@ -178,16 +178,7 @@ fold_balance
 
 ```
 
-```{r}
-library(recipes)
 
-members_rec <- recipe(died ~ ., data = members_train) %>%
-  step_impute_median(age) %>%            # correct function
-  step_other(peak_id, citizenship) %>%   # group rare levels
-  step_dummy(all_nominal(), -all_outcomes()) %>% 
-  step_smote(died)                       # synthesize minority class
-
-```
 
 ```{r}
 members_rec <- recipe(died ~ ., data = members_train) %>%
@@ -199,6 +190,8 @@ members_rec <- recipe(died ~ ., data = members_train) %>%
   ) %>%
   step_dummy(all_nominal(), -died) %>%            
   step_smote(died)
+
+
 
 ```
 
@@ -262,14 +255,32 @@ registerDoParallel(cores = parallel::detectCores())
 
 
 glm_rs <- members_wf %>%
-  ad_data(r) %>%
+  add_model(glm_spec) %>%
+  fit_resamples(
+    resamples = members_folds,
+    metrics = metric_set(roc_auc, accuracy, sensitivity, specificity),
+    control = control_resamples(save_pred = TRUE))
+
+```
+
+
+```{r}
+glm_rs
+
+```
+
+```{r}
+rf_rs <- members_wf %>%
+  add_model(rf_spec) %>%
   fit_resamples(
     resamples = members_folds,
     metrics = metric_set(roc_auc, accuracy, sensitivity, specificity),
     control = control_resamples(save_pred = TRUE)
-    
-    
-glm_rs
+  )
+```
+
+```{r}
+rf_rs
 
 ```
 
