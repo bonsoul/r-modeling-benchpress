@@ -343,71 +343,31 @@ members_final
 
 ```{r}
 members_final %>%
-  pull(.workflow)
-
-```
-
-
-
-#improved model
-
-```{r}
-members_rec <- recipe(died ~ ., data = members_train) %>% 
-  step_mutate(across(where(is.logical), ~ as.numeric(.))) %>% 
-  step_impute_median(all_numeric_predictors()) %>% 
-  step_other(all_nominal_predictors(), threshold = 0.05) %>% 
-  step_dummy(all_nominal_predictors()) %>% 
-  step_smote(died)
+  pull(.workflow) %>%
+  pluck(1) %>%
+  tidy(exponentiate = TRUE) %>%
+  arrange(estimate) %>%
+  kable(digits = 3)
 
 ```
 
 
 ```{r}
-members_rec <- members_rec %>%
-  step_normalize(all_numeric_predictors())
+members_final %>%
+  pull(.workflow) %>%
+  pluck(1) %>%
+  tidy() %>%
+  filter(term != "(Intercept)") %>%
+  ggplot(aes(estimate, fct_reorder(term, estimate))) +
+  geom_vline(xintercept = 0, color = "gray50", lty = 2, size = 1.2) +
+  geom_errorbar(aes(
+    xmin = estimate - std.error,
+    xmax = estimate + std.error
+  ),
+  width = 0.2, alpha = 0.7) +
+  geom_point(size = 2)
+
+
 
 ```
-
-```{r}
-members_rec <- members_rec %>% 
-  step_interact( ~ age:success + age:hired)
-
-```
-
-
-```{r}
-members_rec <- members_rec %>% 
-  step_poly(age, degree = 2)
-
-```
-
-```{r}
-log_spec <- logistic_reg(
-  penalty = tune(), 
-  mixture = tune()
-) %>% 
-  set_engine("glmnet") %>% 
-  set_mode("classification")
-
-```
-
-```{r}
-log_params <- parameters(log_spec)
-
-log_grid <- grid_regular(log_params, levels = 5)
-
-log_wf <- workflow() %>% 
-  add_model(log_spec) %>% 
-  add_recipe(members_rec)
-
-log_tuned <- tune_grid(
-  log_wf,
-  resamples = members_folds,
-  grid = log_grid,
-  metrics = metric_set(roc_auc, accuracy)
-)
-
-```
-
-
 
