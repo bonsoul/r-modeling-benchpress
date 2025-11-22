@@ -50,19 +50,6 @@ hotels %>%  count(is_canceled)
 hotels %>% select(children, babies) %>% sample_n(10)
 ```
 
-```{r}
-hotels %>%
-  filter(is_canceled == 0) %>%
-  mutate(children = case_when(children + babies > 0 - "children",
-                              TRUE - "none"),
-         required_car_parking_spaces = case_when(required_car_parking_spaces > 0 - "parking",
-                                                 TRUE - "none")) %>%
-  select(- is_canceled, -reservation_status, -babies)
-hotel_stays
-
-hotel_stays %>%
-  count(children)
-```
 
 ```{r}
 hotel_stays <- hotels %>%
@@ -207,21 +194,7 @@ tree_fit
 
 #evaluate the model
 
-```{r}
 
-set.seed(1234)
-
-validation_splits <-  mc_cv(juice(hotel_rec), prop = 0.9, strata = children)
-
-knn_res <- fit_resamples(
-  children ~ .,
-  knn_spec,
-  validation_splits,
-  control = control_resamples(save_pred =  TRUE)
-)
-
-
-```
 
 ```{r}
 library(recipes)
@@ -272,14 +245,145 @@ knn_res <- fit_resamples(
 ```
 
 ```{r}
-knn_res
+tree_res <- fit_resamples(
+  knn_wflow,
+  resamples = validation_splits,
+  control = control_resamples(save_pred = TRUE)
+)
 ```
+
+```{r}
+tree_res %>%
+  collect_metrics()
+```
+
+```{r}
+library(tidyr)
+```
+
+
+```{r}
+tree_res %>% 
+  unnest(.predictions) %>%
+  count(.pred_class)
+
+```
+
+```{r}
+tree_res %>%
+  unnest(.predictions) %>%
+  select(.pred_children) %>%
+  slice(1:20)
+
+```
+
+
+```{r}
+tree_res %>% 
+  unnest(.predictions) %>% 
+  glimpse()
+
+```
+
+```{r}
+all_preds <- bind_rows(
+  knn_res %>% unnest(.predictions) %>% mutate(model = "kknn"),
+  tree_res %>% unnest(.predictions) %>% mutate(model = "rpart")
+)
+
+roc_data <- all_preds %>%
+  group_by(model) %>%
+  roc_curve(children, .pred_children) %>%
+  ungroup()
+
+ggplot(roc_data,
+       aes(x = 1 - specificity, y = sensitivity, color = model)) +
+  geom_line(linewidth = 1.2) +
+  theme_minimal() +
+  labs(title = "ROC Curves: KNN vs Decision Tree")
+
+```
+
+
+```{r}
+all_preds <- bind_rows(
+  knn_res %>% unnest(.predictions) %>% mutate(model = "kknn"),
+  tree_res %>% unnest(.predictions) %>% mutate(model = "rpart")
+)
+
+all_preds %>%
+  roc_curve(children, .pred_children) %>%
+  ggplot(aes(x = 1 - specificity,
+             y = sensitivity,
+             color = model)) +
+  geom_line(size = 1.2) +
+  theme_minimal() +
+  labs(title = "ROC Curves: KNN vs Decision Tree")
+
+```
+
+
+```{r}
+library(tidyr)
+
+knn_res %>%
+  unnest(.predictions) %>%
+  mutate(model = "kknn") %>%
+  bind_rows(
+    tree_res %>%
+      unnest(.predictions) %>%
+      mutate(model = "rpart")
+  ) %>%
+  group_by(model) %>%
+  roc_curve(children, .pred_children) %>%
+  autoplot()
+
+```
+
+```{r}
+knn_res %>%
+  unest(.predictions) %>%
+  conf_mat(children, .pred_class) %>%
+  autoplot()
+```
+
+
 
 
 ```{r,metrics}
 metrics <- knn_res %>% collect_metrics()
 metrics
 ```
+
+
+
+
+```{r}
+library(tidymodels)
+library(dplyr)
+library(ggplot2)
+
+set.seed(123)
+validation_splits <- vfold_cv(hotel_train, v = 25)
+
+# Extract fold assignments
+folds_df <- tibble(
+  row = 1:nrow(hotel_train),
+  fold = rep(1:25, length.out = nrow(hotel_train))
+)
+
+# Plot the fold assignments
+ggplot(folds_df, aes(x = row, y = fold, color = factor(fold))) +
+  geom_point(size = 1) +
+  labs(title = "25-Fold Cross-Validation Assignment",
+       x = "Observation Index",
+       y = "Fold",
+       color = "Fold") +
+  theme_minimal()
+
+
+```
+
 
 
 
