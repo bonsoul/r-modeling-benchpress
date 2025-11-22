@@ -137,6 +137,8 @@ hotel_df <- hotel_stays %>%
   mutate_if(is.character, factor)
 ```
 
+#feature engineering and preprocessing
+
 ```{r}
 library(tidymodels)
 
@@ -146,7 +148,70 @@ hotel_split <- initial_split(hotel_df)
 hotel_train <- training(hotel_split)
 hotel_test <- testing(hotel_split)
 
-#recipe(children)
+
+```
+
+```{r}
+library(recipes)
+library(themis)
+
+hotel_rec <- recipe(children ~ ., data = hotel_train) %>%
+  step_downsample(children) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_zv(all_numeric()) %>%
+  step_normalize(all_numeric()) %>%
+  prep()
+
+
+hotel_rec
+
+```
+
+```{r}
+
+test_proc <- bake(hotel_rec, new_data = hotel_test)
+```
+
+```{r}
+library(kknn)
+
+
+```
+
+
+```{r, knn neighbour}
+knn_spec <- nearest_neighbor() %>%
+  set_engine("kknn") %>%
+  set_mode("classification")
+
+knn_fit <- knn_spec %>%
+  fit(children ~ .,
+      data = juice(hotel_rec))
+
+knn_fit
+
+
+```
+
+```{r}
+tree_spec <- decision_tree() %>%
+  set_engine("rpart") %>%
+  set_mode("classification")
+
+tree_fit <- tree_spec %>%
+  fit(children ~ .,
+      data =  juice(hotel_rec))
+
+tree_fit
+```
+
+#evaluate the model
+
+```{r}
+
+set.seed(1234)
+
+mc_cv
 ```
 
 
