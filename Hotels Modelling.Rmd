@@ -211,7 +211,76 @@ tree_fit
 
 set.seed(1234)
 
-mc_cv
+validation_splits <-  mc_cv(juice(hotel_rec), prop = 0.9, strata = children)
+
+knn_res <- fit_resamples(
+  children ~ .,
+  knn_spec,
+  validation_splits,
+  control = control_resamples(save_pred =  TRUE)
+)
+
+
 ```
+
+```{r}
+library(recipes)
+library(workflows)
+library(tidymodels)
+
+hotel_recipe <- recipe(children ~ ., data = hotel_train) %>%
+  step_downsample(children) %>%
+  step_dummy(all_nominal(), -all_outcomes()) %>%
+  step_zv(all_numeric()) %>%
+  step_normalize(all_numeric())
+
+```
+
+```{r,Recipe (unprepped)}
+hotel_recipe <- recipe(children ~ ., data = hotel_train) %>%
+  step_downsample(children) %>%  # balance classes
+  step_dummy(all_nominal(), -all_outcomes()) %>%  # convert categorical variables
+  step_zv(all_numeric()) %>%     # remove zero-variance predictors
+  step_normalize(all_numeric())  # scale numeric variables
+
+```
+
+```{r,KNN model specification}
+knn_spec <- nearest_neighbor(neighbors = 5) %>%  # tuneable later
+  set_mode("classification") %>%
+  set_engine("kknn")
+```
+
+```{r,Workflow}
+knn_wflow <- workflow() %>%
+  add_model(knn_spec) %>%
+  add_recipe(hotel_recipe)
+
+```
+
+```{r, Cross-validation resamples}
+set.seed(123)
+validation_splits <- vfold_cv(hotel_train, v = 25)
+```
+
+```{r, Fit resamples}
+knn_res <- fit_resamples(
+  knn_wflow,
+  resamples = validation_splits,
+  control = control_resamples(save_pred = TRUE)
+)
+```
+
+```{r}
+knn_res
+```
+
+
+```{r,metrics}
+metrics <- knn_res %>% collect_metrics()
+metrics
+```
+
+
 
 
