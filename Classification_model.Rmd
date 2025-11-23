@@ -1,0 +1,29 @@
+---
+title: "Classification Models"
+author: "Bonsoul"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+
+```{r}
+knitr::opts_chunk$set(
+  echo       = TRUE,      # Show code for transparency/reproducibility
+  warning    = FALSE,     # Avoid clutter in the final PDF/Word
+  message    = FALSE,
+  cache      = TRUE,      # Speeds up repeated knitting
+  cache.lazy = FALSE,     # Reduces caching issues when figures depend on data
+
+  fig.align  = "center",  # Consistent figure placement
+  fig.width  = 7,         # Good width for A4/Letter page
+  fig.height = 4.5,
+  dpi        = 300,       # High-quality figures for printing (thesis standard)
+
+  fig.pos    = "H",       # Forces figures to appear "HERE" (requires float package)
+  out.width  = "80%",     # Ensures figures do not dominate the page
+
+  comment    = NA         # Removes `##` prefixes before printed output
+)
+
+```
+
