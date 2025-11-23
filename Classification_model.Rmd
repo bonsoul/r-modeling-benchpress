@@ -60,3 +60,17 @@ library(palmerpenguins)
 penguins %>% count(species)
 ```
 
+```{r}
+penguins %>%
+  filter(!is.na(sex)) %>%
+  ggplot(aes(flipper_length_mm, bill_length_mm, color = sex)) +
+  geom_point(alpha= 0.9) +
+  facet_wrap(~species)
+```
+
+```{r}
+
+```
+
+
+
