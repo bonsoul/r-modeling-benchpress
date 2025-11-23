@@ -301,7 +301,7 @@ ggplot(roc_data,
   geom_line(linewidth = 1.2) +
   theme_minimal() +
   labs(title = "ROC Curves: KNN vs Decision Tree")
-
+  
 ```
 
 
