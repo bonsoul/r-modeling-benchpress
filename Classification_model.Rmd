@@ -3,6 +3,8 @@ title: "Classification Models"
 author: "Bonsoul"
 date: "`r Sys.Date()`"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 
@@ -25,5 +27,36 @@ knitr::opts_chunk$set(
   comment    = NA         # Removes `##` prefixes before printed output
 )
 
+```
+
+#libraries
+
+```{r}
+library(pacman)
+```
+
+```{r}
+pacman::p_load(tidyverse, silgelib)
+
+theme_set(theme_plex())
+```
+
+
+```{r}
+penguin <- readr::read_csv(
+  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-28/penguins.csv"
+)
+
+```
+
+
+
+```{r}
+library(palmerpenguins)
+```
+
+
+```{r}
+penguins %>% count(species)
 ```
 
