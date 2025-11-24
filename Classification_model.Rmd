@@ -61,6 +61,12 @@ penguins %>% count(species)
 ```
 
 ```{r}
+colnames(penguins)
+
+```
+
+
+```{r}
 penguins %>%
   filter(!is.na(sex)) %>%
   ggplot(aes(flipper_length_mm, bill_length_mm, color = sex)) +
@@ -69,8 +75,35 @@ penguins %>%
 ```
 
 ```{r}
+penguins %>%
+  filter(!is.na(island)) %>%
+  ggplot(aes(flipper_length_mm, bill_length_mm, color = sex)) +
+  geom_point(alpha=1.0) +
+  facet_wrap(~species)
+```
+
+```{r}
+penguins %>%
+  filter(!is.na(year)) %>%
+  ggplot(aes(flipper_length_mm, bill_length_mm, color = sex)) +
+  geom_point(alpha=1.0) +
+  facet_wrap(~species)
+```
+
+```{r}
+penguins %>%
+  filter(!is.na(body_mass_g)) %>%
+  ggplot(aes(flipper_length_mm, bill_length_mm, color = sex)) +
+  geom_point(alpha=1.0) +
+  facet_wrap(~species)
+```
+
+```{r}
+library(skimr)
+skimr::skim(penguins)
 
 ```
+
 
 
 
