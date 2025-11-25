@@ -166,5 +166,63 @@ glm_rss %>%
   collect_predictions()
 ```
 
+```{r}
+glm_rss %>%
+  collect_predictions() %>%
+  group_by(id) %>%
+  accuracy(truth = sex, estimate = .pred_class)
+
+```
+
+```{r}
+rf_rs %>%
+  collect_predictions() %>%
+  group_by(id) %>%
+  accuracy(truth = sex, estimate = .pred_class)
+
+```
+
+```{r}
+glm_rss %>%
+  collect_predictions() %>%
+  group_by(id) %>%
+  accuracy(truth = sex, estimate = .pred_class) %>%
+  summarise(mean_accuracy = mean(.estimate),
+            sd_accuracy   = sd(.estimate))
+
+```
+
+
+```{r}
+glm_rss %>%
+  collect_predictions() %>%
+  roc_curve(truth = sex, .pred_female) %>%
+  autoplot()
+
+```
+
+```{r}
+glm_rss %>%
+  collect_predictions() %>%
+  roc_curve(truth = sex, .pred_female) %>%
+  ggplot(aes(1 - specificity, sensitivity)) +
+  geom_line(linewidth = 1.2) +
+  theme_minimal() +
+  labs(title = "ROC Curve for GLM",
+       x = "False Positive Rate",
+       y = "True Positive Rate")
+
+```
+
+```{r}
+glm_rss %>%
+  collect_predictions() %>%
+  group_by(id) %>%
+  roc_curve(sex, .pred_female) %>%
+  ggplot(aes(1 - specificity, sensitivity, color = id)) +
+  geom_abline(lty = 2, color = "gray80", size = 1.5) +
+  geom_path(show.legend = FALSE, alpha = 0.6, size = 1.2) +
+  coord_equal()
+```
 
 
