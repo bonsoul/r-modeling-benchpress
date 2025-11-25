@@ -96,6 +96,75 @@ penguins_df <- penguin %>%
   select(-year, -island)
 ```
 
+```{r}
+library(tidymodels)
+
+set.seed(123)
+penguin_split <- initial_split(penguins_df, strata = sex)
+penguin_train <- training(penguin_split)
+penguin_test <- testing(penguin_split)
+
+```
+
+```{r}
+penguin_boot <- bootstraps(penguin_train)
+penguin_boot
+```
+
+```{r}
+glm_spec <- logistic_reg() %>%
+  set_engine("glm")
+
+rrf_spec <- rand_forest() %>%
+  set_mode("classification") %>%
+  set_engine("ranger")
+```
+
+```{r}
+penguin_wf <- workflow() %>%
+  add_formula(sex ~ .
+
+```
+
+```{r}
+glm_rss <- penguin_wf  %>%
+  add_model(glm_spec) %>%
+  fit_resamples(
+    resamples = penguin_boot,
+    control = control_resamples(save_pred = TRUE, verbose =  TRUE)
+  )
+```
+
+```{r}
+rf_rs <- penguin_wf  %>%
+  add_model(rrf_spec) %>%
+  fit_resamples(
+    resamples = penguin_boot,
+    control = control_resamples(save_pred = TRUE, verbose =  TRUE)
+  )
+```
+
+
+#evaluate the model
+
+
+```{r}
+collect_metrics(rf_rs)
+```
+
+```{r}
+collect_metrics(glm_rss)
+```
+
+```{r}
+glm_rss %>%
+  conf_mat_resampled()
+```
+
+```{r}
+glm_rss %>%
+  collect_predictions()
+```
 
 
 
