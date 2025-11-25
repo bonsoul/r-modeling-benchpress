@@ -42,6 +42,26 @@ measles_df %>%
   arrange(- mmr)
 ```
 
+```{r}
+measles_df %>%
+  group_by(state) %>%
+  summarise(mmr = mean(mmr_threshold == "Above", na.rm = TRUE)) %>%
+  arrange(desc(mmr)) %>%                           # Sort by MMR coverage
+  mutate(state = factor(state, levels = state)) %>% # Preserve order in plot
+  ggplot(aes(x = state, y = mmr, fill = state)) +
+  geom_col(show.legend = FALSE) +
+  scale_y_continuous(labels = percent_format()) +
+  coord_flip() +
+  labs(
+    title = "Proportion of Schools with MMR Coverage 'Above Threshold' by State",
+    x = "State",
+    y = "Proportion Above Threshold"
+  ) +
+  theme_minimal()
+
+```
+
+
 
 
 
