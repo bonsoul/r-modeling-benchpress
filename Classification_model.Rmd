@@ -36,38 +36,30 @@ library(pacman)
 ```
 
 ```{r}
-pacman::p_load(tidyverse, silgelib)
+pacman::p_load(tidyverse, silgelib, palmerpenguins)
 
 theme_set(theme_plex())
 ```
 
 
 ```{r}
-penguin <- readr::read_csv(
-  "https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2020/2020-07-28/penguins.csv"
-)
-
-```
-
-
-
-```{r}
-library(palmerpenguins)
-```
-
-
-```{r}
-penguins %>% count(species)
-```
-
-```{r}
-colnames(penguins)
+penguin <- penguins
 
 ```
 
 
 ```{r}
-penguins %>%
+penguin %>% count(species)
+```
+
+```{r}
+colnames(penguin)
+
+```
+
+
+```{r}
+penguin %>%
   filter(!is.na(sex)) %>%
   ggplot(aes(flipper_length_mm, bill_length_mm, color = sex)) +
   geom_point(alpha= 0.9) +
@@ -78,7 +70,7 @@ penguins %>%
 penguins %>%
   filter(!is.na(island)) %>%
   ggplot(aes(flipper_length_mm, bill_length_mm, color = sex)) +
-  geom_point(alpha=1.0) +
+  geom_point(alpha=1.0, na.rm = TRUE) +
   facet_wrap(~species)
 ```
 
@@ -99,9 +91,9 @@ penguins %>%
 ```
 
 ```{r}
-library(skimr)
-skimr::skim(penguins)
-
+penguins_df <- penguin %>%
+  filter(!is.na(sex)) %>%
+  select(-year, -island)
 ```
 
 
