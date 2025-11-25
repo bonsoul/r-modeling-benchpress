@@ -225,4 +225,71 @@ glm_rss %>%
   coord_equal()
 ```
 
+```{r}
+
+penguin_final <- penguin_wf %>%
+  add_model(glm_spec) %>%
+  last_fit(penguin_split)
+
+```
+
+```{r}
+penguin_final$.workflow[[1]] %>%
+  tidy(exponentiate = TRUE)
+```
+
+
+
+```{r}
+glm_rss %>%
+  extract_fit_parsnip() %>%
+  tidy() %>%
+  filter(term != "(Intercept)") %>%
+  mutate(importance = abs(estimate)) %>%
+  arrange(desc(importance))
+
+```
+
+```{r}
+glm_spec <- logistic_reg() %>%
+  set_engine("glm") %>%
+  set_mode("classification")
+
+glm_wflow <- workflow() %>%
+  add_model(glm_spec) %>%
+  add_formula(sex ~ .)
+
+glm_fit <- fit(glm_wflow, data = penguin_train)
+
+```
+
+```{r}
+glm_fit %>%
+  extract_fit_parsnip() %>%
+  tidy() %>%
+  filter(term != "(Intercept)") %>%
+  mutate(importance = abs(estimate)) %>%
+  arrange(desc(importance))
+
+```
+
+
+```{r}
+penguin %>%
+  filter(!is.na(sex)) %>%
+  ggplot(aes(flipper_length_mm, bill_length_mm, color = sex,
+             size = body_mass_g)) +
+  geom_point(alpha= 0.9) +
+  facet_wrap(~species)
+```
+
+```{r}
+penguin %>%
+  filter(!is.na(sex)) %>%
+  ggplot(aes(bill_depth_mm, bill_length_mm, color = sex,
+             size = body_mass_g)) +
+  geom_point(alpha= 0.9) +
+  facet_wrap(~species)
+```
+
 
