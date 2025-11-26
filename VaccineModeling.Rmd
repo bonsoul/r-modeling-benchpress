@@ -61,6 +61,60 @@ measles_df %>%
 
 ```
 
+```{r, model}
+
+library(tidymodels)
+
+glm_fit <- logistic_reg() %>%
+  
+  set_engine("glm") %>%
+  fit(mmr_threshold ~ state, data = measles_df)
+
+tidy(glm_fit)
+
+```
+
+```{r}
+mean_pred <- predict(glm_fit,
+                     new_data = new_schools,
+                     type = "prob")
+
+conf_int <- predict(glm_fit,
+                    new_data = new_schools,
+                    type = "conf_int")
+
+schools_result <- new_schools %>%
+  bind_cols(mean_pred) %>%
+  bind_cols(conf_int)
+
+```
+
+```{r}
+schools_result %>%
+  mutate(state = fct_reorder(state, .pred_Above)) %>%
+  ggplot(aes(state, .pred_Above, fill = state)) +
+  geom_col(show.legend = FALSE) +
+  geom_errorbar(aes(ymin = .pred_lower_Above,
+                    ymax = .pred_upper_Above),
+                color = "gray0") +
+  scale_y_continuous(labels = scales::percent_format()) +
+  coord_flip()
+```
+
+
+#try another model
+
+```{r}
+
+install.packages("rstanarm")
+library(rstanarm)
+```
+
+```{r}
+option
+```
+
+
 
 
 
