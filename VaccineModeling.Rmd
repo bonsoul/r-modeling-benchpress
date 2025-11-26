@@ -105,16 +105,35 @@ schools_result %>%
 #try another model
 
 ```{r}
-
-install.packages("rstanarm")
 library(rstanarm)
+
+options(mc.cores = parallel::detectCores())
 ```
 
 ```{r}
-option
+prior_dist <- student_t(df = 2)
+
+stan_fit <- logistic_reg() %>%
+  set_engine("stan",
+             prior = prior_dist,
+             prior_intercept = prior_dist) %>%
+  fit(mmr_threshold ~ state, data = measles_df)
+
 ```
 
+```{r}
+bayes_pred <- predict(stan_fit,
+                     new_data = new_schools,
+                     type = "prob")
 
+bayes_int <- predict(stan_fit,
+                    new_data = new_schools,
+                    type = "conf_int")
+
+bayes_result <- new_schools %>%
+  bind_cols(mean_pred) %>%
+  bind_cols(conf_int)
+```
 
 
 
