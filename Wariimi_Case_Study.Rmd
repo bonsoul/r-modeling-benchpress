@@ -31,6 +31,13 @@ colnames(df2)
 
 
 ```{r}
+dim(df2)
+dim(df1)
+
+```
+
+
+```{r}
 colnames(df1)
 
 ```
@@ -65,20 +72,145 @@ library(psych)   # for describe()
 
 ```
 
+
+
+```{r,Clean column names}
+df1c <- df1 %>% janitor::clean_names()
+df2c <- df2 %>% janitor::clean_names()
+```
+
 ```{r}
-colnames(df1_clean)
+missing_in_df2 <- setdiff(names(df1c), names(df2c))
+missing_in_df1 <- setdiff(names(df2c), names(df1c))
+```
+
+```{r}
+df2c[missing_in_df2] <- NA
+df1c[missing_in_df1] <- NA
+
+```
+
+```{r}
+df2c <- df2c[, names(df1c)]
+```
+
+```{r}
+merged_df <- bind_rows(df1c, df2c)
+
+df <- merged_df
 ```
 
 
-
 ```{r}
-df1_clean %>% 
-  summarise(
-    Mean_Age = mean(Age, na.rm = TRUE),
-    SD_Age   = sd(Age, na.rm = TRUE)
+library(dplyr)
+library(janitor)
+# Recode school status
+df <- df %>%
+  mutate(
+    school_status = case_when(
+      grepl("Yes|currently", are_you_currently_in_school, ignore.case = TRUE) ~ "Yes",
+      grepl("No|finished", are_you_currently_in_school, ignore.case = TRUE) ~ "No",
+      TRUE ~ NA_character_
+    )
   )
 
+
 ```
+
+```{r}
+df <- df %>%
+  mutate(
+    residence_group = case_when(
+      grepl("Home", trimws(where_do_you_live), ignore.case = TRUE) ~ "Home",
+      grepl("Orphanage|Children's Home", trimws(where_do_you_live), ignore.case = TRUE) ~ "Orphanage/Children's Home",
+      grepl("Relative|Auntie|Father|Mother|Grandparent|Sibling", trimws(where_do_you_live), ignore.case = TRUE) ~ "Relative",
+      TRUE ~ "Other"
+    )
+  )
+
+# Check frequencies
+tabyl(df, residence_group) %>%
+  adorn_pct_formatting()
+
+```
+
+
+
+```{r}
+tabyl(df, what_is_your_sex) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+tabyl(df, what_is_the_highest_level_of_education_that_you_have_attained) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+tabyl(df, are_you_currently_in_school) %>% 
+  adorn_pct_formatting()
+
+```
+
+
+```{r}
+tabyl(df, where_do_you_live) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+df %>%
+  separate_rows(who_do_you_currently_live_with_select_all_that_apply, sep = ",") %>%
+  count(who_do_you_currently_live_with_select_all_that_apply) %>%
+  mutate(percent = round(n / nrow(df) * 100, 1))
+
+```
+
+```{r}
+tabyl(df, is_there_anyone_new_at_home) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+tabyl(df, has_someone_left_in_the_last_1_year) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+tabyl(df, are_you_currently_involved_in_any_work_for_pay) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+library(gtsummary)
+```
+
+
+```{r}
+table1 <- df %>%
+  select(
+    what_is_your_sex,
+    where_do_you_live,
+    are_you_currently_in_school,
+    what_is_the_highest_level_of_education_that_you_have_attained,
+    are_you_currently_involved_in_any_work_for_pay,
+    is_there_anyone_new_at_home,
+    has_someone_left_in_the_last_1_year
+  ) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)"
+  )
+
+table1
+
+```
+
 
 
 
