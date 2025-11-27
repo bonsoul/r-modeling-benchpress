@@ -51,5 +51,35 @@ table(df1_clean$`What is your sex?`)
 
 ```
 
+```{r}
+
+df1_clean <- df1 |> separate_rows(`Who do you currently live with? 
+Select all that apply`, sep = ",")
+
+```
+
+```{r}
+library(dplyr)
+library(janitor)
+library(psych)   # for describe()
+
+```
+
+```{r}
+colnames(df1_clean)
+```
+
+
+
+```{r}
+df1_clean %>% 
+  summarise(
+    Mean_Age = mean(Age, na.rm = TRUE),
+    SD_Age   = sd(Age, na.rm = TRUE)
+  )
+
+```
+
+
 
 
