@@ -49,23 +49,6 @@ skim(df1)
 ```
 
 ```{r}
-df1_clean <- df1 |> dplyr::select(-Score, -`@`)
-
-```
-
-```{r}
-table(df1_clean$`What is your sex?`)
-
-```
-
-```{r}
-
-df1_clean <- df1 |> separate_rows(`Who do you currently live with? 
-Select all that apply`, sep = ",")
-
-```
-
-```{r}
 library(dplyr)
 library(janitor)
 library(psych)   # for describe()
@@ -100,6 +83,74 @@ merged_df <- bind_rows(df1c, df2c)
 df <- merged_df
 ```
 
+```{r}
+library(dplyr)
+library(tidyr)
+library(janitor)
+
+df <- df %>%
+  # split multiple responses into separate rows
+  separate_rows(who_do_you_currently_live_with_select_all_that_apply, sep = ",") %>%
+  mutate(
+    # trim whitespace
+    who_do_you_currently_live_with_select_all_that_apply = trimws(who_do_you_currently_live_with_select_all_that_apply),
+    # recode into clean categories
+    currently_live1 = case_when(
+      grepl("Alone", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Alone",
+      grepl("Mom|mother", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Mother",
+      grepl("Dad|father", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Father",
+      grepl("Siblings", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Siblings",
+      grepl("Grandparents", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Grandparents",
+      grepl("Relative|Auntie", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Relatives",
+      grepl("Househelp|Shamba boy", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "House help and shamba boy",
+      TRUE ~ "Other"
+    )
+  )
+
+# Create frequency table with percentages
+live_with_freq <- tabyl(df, currently_live1) %>%
+  adorn_pct_formatting()
+
+# Print
+print(live_with_freq)
+
+```
+
+```{r}
+tabyl(df, currently_live1) %>% 
+  adorn_pct_formatting()
+```
+
+
+
+```{r}
+tabyl(df, currently_live) %>% 
+  adorn_pct_formatting()
+```
+
+```{r}
+library(dplyr)
+library(janitor)
+
+df <- df %>%
+  mutate(
+    residence_case = case_when(
+      grepl("^a\\) Home$", trimws(where_do_you_live)) ~ "Home",
+      grepl("^b\\) Orphanage/ Children's Home$", trimws(where_do_you_live)) ~ "Orphanage/ Children's Home",
+      grepl("Relative's place", trimws(where_do_you_live)) ~ "Relative's place",
+      grepl("Living with Auntie after the death of the mother in April", trimws(where_do_you_live)) ~ "Relative's place",
+      TRUE ~ where_do_you_live   # keep any other text as-is
+    )
+  )
+
+# Check frequencies
+tabyl(df, residence_case) %>% 
+  adorn_pct_formatting()
+
+
+```
+
+
 
 ```{r}
 library(dplyr)
@@ -114,23 +165,6 @@ df <- df %>%
     )
   )
 
-
-```
-
-```{r}
-df <- df %>%
-  mutate(
-    residence_group = case_when(
-      grepl("Home", trimws(where_do_you_live), ignore.case = TRUE) ~ "Home",
-      grepl("Orphanage|Children's Home", trimws(where_do_you_live), ignore.case = TRUE) ~ "Orphanage/Children's Home",
-      grepl("Relative|Auntie|Father|Mother|Grandparent|Sibling", trimws(where_do_you_live), ignore.case = TRUE) ~ "Relative",
-      TRUE ~ "Other"
-    )
-  )
-
-# Check frequencies
-tabyl(df, residence_group) %>%
-  adorn_pct_formatting()
 
 ```
 
@@ -156,16 +190,9 @@ tabyl(df, are_you_currently_in_school) %>%
 
 
 ```{r}
-tabyl(df, where_do_you_live) %>% 
+# Check frequencies
+tabyl(df, who_lives_with) %>%
   adorn_pct_formatting()
-
-```
-
-```{r}
-df %>%
-  separate_rows(who_do_you_currently_live_with_select_all_that_apply, sep = ",") %>%
-  count(who_do_you_currently_live_with_select_all_that_apply) %>%
-  mutate(percent = round(n / nrow(df) * 100, 1))
 
 ```
 
@@ -196,7 +223,8 @@ library(gtsummary)
 table1 <- df %>%
   select(
     what_is_your_sex,
-    where_do_you_live,
+    currently_live1,
+    residence_case,
     are_you_currently_in_school,
     what_is_the_highest_level_of_education_that_you_have_attained,
     are_you_currently_involved_in_any_work_for_pay,
