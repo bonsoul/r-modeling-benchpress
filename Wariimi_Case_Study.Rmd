@@ -84,6 +84,11 @@ df <- merged_df
 ```
 
 ```{r}
+df10 <- df    #copying the dataframe
+```
+
+
+```{r}
 library(dplyr)
 library(tidyr)
 library(janitor)
@@ -238,6 +243,51 @@ table1 <- df %>%
 table1
 
 ```
+
+
+#TABLE 2: PSYCHOLOGICAL RESOURCES, VULNERABILITIES & RISK BEHAVIOR
+
+
+```{r}
+df10_clean <- df10 %>%
+  separate_rows(to_whom_can_you_talk_at_home_when_you_have_a_problem, sep = ",") %>%
+  mutate(to_whom = trimws(tolower(to_whom_can_you_talk_at_home_when_you_have_a_problem)),
+         to_whom = case_when(
+           to_whom %in% c("a) parents", "parents", "mother", "father") ~ "Parents",
+           to_whom %in% c("b) siblings", "siblings", "sibling") ~ "Siblings",
+           to_whom %in% c("c) relatives", "relatives", "auntie", "aunt", "uncle") ~ "Relatives",
+           to_whom %in% c("friend", "friend at home") ~ "Friend",
+           to_whom %in% c("bestfriend", "best friend") ~ "Best friend",
+           to_whom %in% c("none", "no one", "no one in specific") ~ "None",
+           TRUE ~ stringr::str_to_title(to_whom) # keep others but clean them
+         ))
+
+df10_clean %>%
+  count(to_whom) %>%
+  mutate(percent = round(n / nrow(df10) * 100, 1))
+
+```
+
+
+
+```{r}
+tabyl(df10, who_do_you_talk_to_when_you_have_a_problem) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+tabyl(df, are_there_times_when_you_miss_meals) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+tabyl(df, do_you_go_to_school_hungry) %>% 
+  adorn_pct_formatting()
+
+```
+
 
 
 
