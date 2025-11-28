@@ -269,22 +269,618 @@ df10_clean %>%
 ```
 
 
+```{r}
+df10_clean <- df10 %>%
+  mutate(
+    talk_raw = tolower(str_trim(who_do_you_talk_to_when_you_have_a_problem)),
+    talk_to_clean = case_when(
+      str_detect(talk_raw, "best ?friend") ~ "Best friend",
+      str_detect(talk_raw, "friend") ~ "Friend",
+      str_detect(talk_raw, "class teacher") ~ "Class teacher",
+      str_detect(talk_raw, "teacher") ~ "Teacher",
+      str_detect(talk_raw, "counsel") ~ "Counsellor",
+      str_detect(talk_raw, "no one|none|don't talk") ~ "None",
+      TRUE ~ str_to_title(talk_raw)
+    )
+  )
+
+
+df10_clean2 <- df10_clean %>%
+  mutate(
+    talk_to_final = case_when(
+      talk_to_clean %in% c("Class teacher", "Teacher") ~ "Teacher",
+      talk_to_clean %in% c("Best friend", "Friend") ~ "Friend",
+      TRUE ~ talk_to_clean
+    )
+  )
+
+df10_clean2 <- df10_clean2 %>%
+  mutate(talk_to_when_in_school = talk_to_final) %>%
+  select(-talk_to_final)
+
+
+```
 
 ```{r}
-tabyl(df10, who_do_you_talk_to_when_you_have_a_problem) %>% 
+df10_clean2 %>%
+  tabyl(talk_to_when_in_school) %>%
+  adorn_pct_formatting()
+
+```
+
+
+
+```{r}
+tabyl(df10, are_there_times_when_you_miss_meals) %>% 
   adorn_pct_formatting()
 
 ```
 
 ```{r}
-tabyl(df, are_there_times_when_you_miss_meals) %>% 
+tabyl(df10, do_you_go_to_school_hungry) %>% 
   adorn_pct_formatting()
 
 ```
 
 ```{r}
-tabyl(df, do_you_go_to_school_hungry) %>% 
+library(dplyr)
+library(janitor)
+
+df10_part <- df10 %>%
+  mutate(
+    do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music =
+      case_when(
+        do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music %in% 
+          c("a) Once", "Once") ~ "Once",
+        
+        do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music %in% 
+          c("b) Sometimes", "Sometimes") ~ "Sometimes",
+        
+        do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music %in% 
+          c("c) Severally", "Severally") ~ "Severally",
+        
+        do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music %in% 
+          c("d) Never", "Never") ~ "Never",
+        
+        do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music %in% 
+          c("Currently not in school",
+            "Currently out of school",
+            "Not in school",
+            "Not in school at the moment") ~ "Currently not in school",
+        
+        TRUE ~ as.character(
+          do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music
+        )
+      )
+  )
+
+
+```
+
+
+```{r}
+# Now create the clean table
+tabyl(
+  df10_part,
+  do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music
+) %>% 
   adorn_pct_formatting()
+
+
+
+```
+
+```{r}
+tabyl(df10, do_you_attend_a_church_group_club_or_other_organized_activity) %>% 
+  adorn_pct_formatting()
+```
+
+
+
+```{r}
+library(dplyr)
+library(janitor)
+library(stringr)
+
+df10_use <- df10 %>%
+  mutate(
+    do_any_of_your_friends_use_select_all_that_apply = case_when(
+      
+      # NONE group
+      str_detect(
+        str_to_lower(do_any_of_your_friends_use_select_all_that_apply),
+        "none|no|n/a"
+      ) ~ "None",
+      
+      # I DON'T KNOW
+      str_detect(
+        str_to_lower(do_any_of_your_friends_use_select_all_that_apply),
+        "don’t know|don't know"
+      ) ~ "I don’t know",
+      
+      # ALCOHOL
+      str_detect(
+        str_to_lower(do_any_of_your_friends_use_select_all_that_apply),
+        "alcohol"
+      ) ~ "Alcohol",
+      
+      # TOBACCO
+      str_detect(
+        str_to_lower(do_any_of_your_friends_use_select_all_that_apply),
+        "tobacco"
+      ) ~ "Tobacco",
+      
+      # MIRAA / KHAT
+      str_detect(
+        str_to_lower(do_any_of_your_friends_use_select_all_that_apply),
+        "miraa|khat"
+      ) ~ "Miraa/khat",
+      
+      # COCAINE
+      str_detect(
+        str_to_lower(do_any_of_your_friends_use_select_all_that_apply),
+        "cocaine"
+      ) ~ "Cocaine",
+      
+      TRUE ~ NA_character_
+    )
+  )
+
+
+```
+
+
+```{r}
+tabyl(df10_use, do_any_of_your_friends_use_select_all_that_apply) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(do_any_of_your_friends_use_select_all_that_apply)) %>%
+  select(-valid_percent)
+
+```
+
+```{r}
+tabyl(df10,does_anyone_in_your_family_home_use_select_all_that_apply) %>% 
+  adorn_pct_formatting()
+
+```
+
+```{r}
+library(dplyr)
+library(janitor)
+library(stringr)
+
+df10_home <- df10 %>%
+  mutate(
+    does_anyone_in_your_family_home_use_select_all_that_apply = case_when(
+      
+      # NONE group
+      str_detect(
+        str_to_lower(does_anyone_in_your_family_home_use_select_all_that_apply),
+        "none|no one|no |n/a|never"
+      ) ~ "None",
+      
+      # I DON'T KNOW
+      str_detect(
+        str_to_lower(does_anyone_in_your_family_home_use_select_all_that_apply),
+        "don’t know|don't know"
+      ) ~ "I don’t know",
+      
+      # ALCOHOL
+      str_detect(
+        str_to_lower(does_anyone_in_your_family_home_use_select_all_that_apply),
+        "alcohol"
+      ) ~ "Alcohol",
+      
+      # TOBACCO
+      str_detect(
+        str_to_lower(does_anyone_in_your_family_home_use_select_all_that_apply),
+        "tobacco"
+      ) ~ "Tobacco",
+      
+      # MIRAA / KHAT
+      str_detect(
+        str_to_lower(does_anyone_in_your_family_home_use_select_all_that_apply),
+        "miraa|khat"
+      ) ~ "Miraa/khat",
+      
+      TRUE ~ NA_character_
+    )
+  )
+
+```
+
+```{r}
+# Clean final table
+tabyl(df10_home, does_anyone_in_your_family_home_use_select_all_that_apply) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(does_anyone_in_your_family_home_use_select_all_that_apply)) %>% select(-valid_percent)
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+library(janitor)
+
+df10_alcohol <- df10 %>%
+  mutate(
+    have_you_ever_tried_taking_do_you_take_a_alcohol = case_when(
+      
+      # Fix the weird combined entry → Sometimes
+      str_detect(
+        have_you_ever_tried_taking_do_you_take_a_alcohol,
+        "Sometimes"
+      ) & str_detect(
+        have_you_ever_tried_taking_do_you_take_a_alcohol,
+        "Once|Severally|Never"
+      ) ~ "Sometimes",
+      
+      TRUE ~ have_you_ever_tried_taking_do_you_take_a_alcohol
+    )
+  )
+
+
+
+```
+
+```{r}
+# Recreate the clean table
+tabyl(df10_alcohol, have_you_ever_tried_taking_do_you_take_a_alcohol) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_tried_taking_do_you_take_a_alcohol)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+tabyl(df10, have_you_ever_tried_taking_do_you_take_b_tobacco) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_tried_taking_do_you_take_b_tobacco)) %>%
+  select(-valid_percent)
+```
+
+
+```{r}
+tabyl(df10, have_you_ever_tried_taking_do_you_take_c_miraa_khat) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_tried_taking_do_you_take_c_miraa_khat)) %>%
+  select(-valid_percent)
+```
+
+
+```{r}
+tabyl(df10,have_you_ever_tried_taking_do_you_take_d_heroin) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_tried_taking_do_you_take_d_heroin)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+tabyl(df10,have_you_ever_tried_taking_do_you_take_e_cocaine) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_tried_taking_do_you_take_e_cocaine)) %>%
+  select(-valid_percent)
+```
+
+
+
+```{r}
+tabyl(df10,have_you_ever_tried_taking_do_you_take_f_kuber) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_tried_taking_do_you_take_f_kuber)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+tabyl(df10,have_you_ever_tried_taking_do_you_take_g_mandrax) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_tried_taking_do_you_take_g_mandrax)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+tabyl(df10,have_you_ever_tried_taking_do_you_take_h_others) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_tried_taking_do_you_take_h_others)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+library(dplyr)
+library(janitor)
+library(stringr)
+
+df10_sex <- df10 %>%
+  mutate(
+    have_you_ever_had_sex = case_when(
+      str_detect(str_to_lower(have_you_ever_had_sex), "yes") ~ "Yes",
+      str_detect(str_to_lower(have_you_ever_had_sex), "no") ~ "No",
+      str_detect(str_to_lower(have_you_ever_had_sex), "don’t know|don't know|no response") ~ "No response",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+
+```
+
+
+```{r}
+# Clean final table
+tabyl(df10_sex, have_you_ever_had_sex) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_had_sex))
+```
+
+```{r}
+tabyl(df10_sex, what_was_the_main_reason_you_had_sex_for_the_first_time) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(what_was_the_main_reason_you_had_sex_for_the_first_time))
+```
+
+```{r}
+library(dplyr)
+library(janitor)
+library(stringr)
+
+df10_se <- df10_sex %>%
+  mutate(
+    what_was_the_main_reason_you_had_sex_for_the_first_time = case_when(
+      
+      # Peer pressure
+      str_detect(str_to_lower(what_was_the_main_reason_you_had_sex_for_the_first_time), "peer pressure") ~ "Peer pressure",
+      
+      # Personal choice (curiosity, having fun, just felt like it)
+      str_detect(str_to_lower(what_was_the_main_reason_you_had_sex_for_the_first_time), 
+                 "curiosity|having fun|just felt like it") ~ "Curiosity",
+      
+      # Never had sex / Not involved / N/A
+      str_detect(str_to_lower(what_was_the_main_reason_you_had_sex_for_the_first_time),
+                 "n/a|never|not involved|not had|no sex") ~ "Never had sex / Not involved",
+      
+      TRUE ~ NA_character_
+    )
+  )
+
+```
+
+```{r}
+# Create clean table
+tabyl(df10_se, what_was_the_main_reason_you_had_sex_for_the_first_time) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(what_was_the_main_reason_you_had_sex_for_the_first_time)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+
+tabyl(df10, was_the_first_person_you_had_sex_with_older_younger_or_same_age_as_you) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(was_the_first_person_you_had_sex_with_older_younger_or_same_age_as_you)) %>%
+  select(-valid_percent)
+
+
+```
+
+
+```{r}
+tabyl(df10, have_you_had_sex_with_either_the_following) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_had_sex_with_either_the_following)) %>%
+  select(-valid_percent)
+```
+
+
+```{r}
+library(dplyr)
+library(janitor)
+library(stringr)
+
+df10_mean <- df10 %>%
+  mutate(
+    what_does_the_term_safe_sex_mean_to_you = case_when(
+      
+      # Use of condom
+      str_detect(str_to_lower(what_does_the_term_safe_sex_mean_to_you), 
+                 "condom|protected|protective|sex with protection|sex with condoms") ~ "Use of condom",
+      
+      # Having one sexual partner
+      str_detect(str_to_lower(what_does_the_term_safe_sex_mean_to_you), 
+                 "one sexual partner|sex with 1 person|sex with 1 friend|sex with one partner|having protected sex with one partner") ~ "Having one sexual partner",
+      
+      # Having sex at the right age and with one person
+      str_detect(str_to_lower(what_does_the_term_safe_sex_mean_to_you), 
+                 "right age") ~ "Having sex at the right age and with one person",
+      
+      # Not sure
+      str_detect(str_to_lower(what_does_the_term_safe_sex_mean_to_you), 
+                 "not sure|i don't know|don't know") ~ "Not sure",
+      
+      # No idea
+      str_detect(str_to_lower(what_does_the_term_safe_sex_mean_to_you), 
+                 "no idea") ~ "No idea",
+      
+      TRUE ~ NA_character_
+    )
+  )
+
+
+
+```
+
+```{r}
+# Create clean table
+tabyl(df10_mean, what_does_the_term_safe_sex_mean_to_you) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(what_does_the_term_safe_sex_mean_to_you)) %>%
+  select(-valid_percent)
+```
+
+
+```{r}
+tabyl(df10, what_does_the_term_safe_sex_mean_to_you) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(what_does_the_term_safe_sex_mean_to_you)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+
+
+tabyl(df10, how_many_sexual_partners_have_you_had_for_the_past_12_months) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(how_many_sexual_partners_have_you_had_for_the_past_12_months)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+tabyl(df10, what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from)) %>%
+  select(-valid_percent)
+```
+
+
+```{r}
+library(dplyr)
+library(janitor)
+library(stringr)
+
+df10_info <- df10 %>%
+  mutate(
+    what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from = case_when(
+      
+      # None
+      str_detect(str_to_lower(.data$what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from),
+                 "none") ~ "None",
+      
+      # School/teacher
+      str_detect(str_to_lower(.data$what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from),
+                 "school|teacher") ~ "School/teacher",
+      
+      # Parents/Guardians
+      str_detect(str_to_lower(.data$what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from),
+                 "parent|guardian") ~ "Parents/Guardians",
+      
+      # Friends
+      str_detect(str_to_lower(.data$what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from),
+                 "friend") ~ "Friends",
+      
+      # Mass media (TV/Radio)
+      str_detect(str_to_lower(.data$what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from),
+                 "mass media|tv|radio") ~ "Mass media",
+      
+      # Internet / Mobile / Social media
+      str_detect(str_to_lower(.data$what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from),
+                 "internet|mobile|social media|facebook|instagram|tik tok") ~ "Internet / Mobile / Social media",
+      
+      # Health facilities
+      str_detect(str_to_lower(.data$what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from),
+                 "health facility") ~ "Health facilities",
+      
+      # Magazines/Books
+      str_detect(str_to_lower(.data$what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from),
+                 "magazine|book") ~ "Magazines/Books",
+      
+      TRUE ~ NA_character_
+    )
+  )
+
+
+
+```
+
+```{r}
+# Tabulate clean table
+tabyl(df10_info, what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+
+tabyl(df10, repeated_disturbing_and_unwanted_memories_of_the_stressful_experience) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(repeated_disturbing_and_unwanted_memories_of_the_stressful_experience)) %>%
+  select(-valid_percent)
+```
+
+```{r}
+tabyl(df10, is_there_physical_violence_in_your_home) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(is_there_physical_violence_in_your_home))
+```
+
+```{r}
+tabyl(df10, is_there_physical_violence_in_your_home) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(is_there_physical_violence_in_your_home))
+
+```
+
+```{r}
+
+tabyl(df10, is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends))
+```
+
+```{r}
+
+
+tabyl(df10, have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time))
+```
+
+```{r}
+tabyl(df10, did_you_seek_help_for_any_experiences_of_harm_or_unwanted_sex) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(did_you_seek_help_for_any_experiences_of_harm_or_unwanted_sex))
+
+```
+
+```{r}
+library(dplyr)
+library(janitor)
+library(stringr)
+
+df10_picked <- df10 %>%
+  mutate(
+    have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur = case_when(
+      
+      # Once, not recurring
+      str_detect(str_to_lower(have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur),
+                 "once|never occurred") ~ "Once",
+      
+      # Currently happening
+      str_detect(str_to_lower(have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur),
+                 "^yes") ~ "Yes",
+      
+      # No / no longer
+      str_detect(str_to_lower(have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur),
+                 "^no") ~ "No",
+      
+      TRUE ~ NA_character_
+    )
+  )
+
+
+```
+
+```{r}
+# Tabulate clean table
+tabyl(df10_picked, have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur))
+```
+
+
+
+
+```{r}
+tabyl(df10, is_there_physical_violence_in_your_home) %>% adorn_pct_formatting()
+tabyl(df10, is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends) %>% adorn_pct_formatting()
+tabyl(df10, have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time) %>% adorn_pct_formatting()
 
 ```
 
