@@ -887,5 +887,673 @@ tabyl(df10, have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_
 
 
 
+#bivariate analysis
+
+```{r}
+# Example: create binary depression variable
+df11 <- df %>%
+  mutate(
+    depression = ifelse(do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual %in% c("Yes"), 1, 0),
+    ptsd = ifelse(repeated_disturbing_and_unwanted_memories_of_the_stressful_experience > 0, 1, 0) # customize threshold
+  )
+
+```
+
+```{r}
+unique(df11$do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual)
+unique(df11$repeated_disturbing_and_unwanted_memories_of_the_stressful_experience)
+
+```
+
+
+```{r}
+library(janitor)
+
+# Depression vs sex
+tabyl(df11, what_is_your_sex, depression) %>%
+  adorn_percentages("row") %>%
+  adorn_pct_formatting() %>%
+  adorn_ns()
+
+# Chi-square test
+chisq.test(table(df11$what_is_your_sex, df11$depression))
+
+
+```
+
+```{r}
+# Example: PTSD vs bullying
+tabyl(df11, have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur, ptsd)
+chisq.test(table(df11$have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur, df10$ptsd))
+```
+
+```{r}
+# Age vs depression
+t.test(score ~ depression, data = df11)  # assuming 'score' is age; adjust if necessary
+
+# Age vs PTSD
+t.test(score ~ ptsd, data = df11)
+
+```
+
+
+```{r}
+library(dplyr)
+
+recode_likert <- function(x){
+  case_when(
+    x %in% c("Not at all", "Never", "No") ~ 0,
+    x %in% c("Several days", "Sometimes", "Mild") ~ 1,
+    x %in% c("More than half the days", "Often", "Moderate") ~ 2,
+    x %in% c("Nearly every day", "Always", "Severe", "Yes") ~ 3,
+    is.numeric(x) ~ as.numeric(x),
+    TRUE ~ NA_real_
+  )
+}
+
+```
+
+```{r}
+depression_vars <- c(
+  "do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual",
+  "do_you_find_yourself_crying_more_than_usual",
+  "does_it_seem_that_you_ve_lost_interest_or_pleasure_in_things_that_you_used_to_really_enjoy",
+  "do_you_find_yourself_spending_less_and_less_time_with_friends",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much",
+  "how_often_have_you_been_bothered_by_these_symptoms_poor_appetite_weight_loss_or_over_eating",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_tired_or_having_little_energy",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_bad_about_yourself_or_feeling_that_you_are_a_failure_or_that_you_have_let_yourself_or_your_family_down",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_concentrating_on_school_work_reading_or_watching_tv",
+  "some_people_who_feel_really_down_often_feel_like_hurting_themselves_or_even_killing_themselves_or_thoughts_that_they_would_be_better_off_dead_have_you_ever_felt_this_way"
+)
+
+```
+
+```{r}
+df101 <- df10 %>%
+  mutate(across(all_of(depression_vars), recode_likert))
+
+df102 <- df101 %>%
+  rowwise() %>%
+  mutate(
+    depression_score = sum(c_across(all_of(depression_vars)), na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+df103 <- df102 %>%
+  mutate(
+    depression_binary = ifelse(depression_score >= 10, 1, 0)
+  )
+
+```
+
+```{r}
+df103 <- df103 %>%
+  mutate(
+    depression_binary = factor(depression_binary, levels = c(0,1),
+                                labels = c("No Depression", "Depression"))
+  )
+
+```
+
+
+```{r}
+categorical_vars
+categorical_vars %in% names(df103)
+
+```
+
+```{r}
+categorical_vars <- categorical_vars[categorical_vars %in% names(df103)]
+categorical_vars
+
+```
+
+```{r}
+df104 <- df103 %>%
+  mutate(across(all_of(categorical_vars), as.factor))
+
+chi_results <- lapply(categorical_vars, function(var){
+
+  subdf <- df104 %>%
+    select(all_of(var), depression_binary) %>%
+    drop_na()
+
+  tab <- table(subdf[[1]], subdf$depression_binary)
+
+  test <- suppressWarnings(chisq.test(tab))
+
+  list(
+    variable = var,
+    table = tab,
+    chi_square = unname(test$statistic),
+    df = unname(test$parameter),
+    p_value = test$p.value
+  )
+})
+
+```
+
+```{r}
+chi_summary <- data.frame(
+  Variable = sapply(chi_results, function(x) x$variable),
+  Chi_Square = round(as.numeric(sapply(chi_results, function(x) x$chi_square)), 2),
+  DF = as.numeric(sapply(chi_results, function(x) x$df)),
+  P_Value = round(as.numeric(sapply(chi_results, function(x) x$p_value)), 4)
+)
+
+chi_summary
+
+```
+
+```{r}
+depression_vars <- c(
+  "do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual",
+  "do_you_find_yourself_crying_more_than_usual",
+  "does_it_seem_that_you_ve_lost_interest_or_pleasure_in_things_that_you_used_to_really_enjoy",
+  "do_you_find_yourself_spending_less_and_less_time_with_friends",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much",
+  "how_often_have_you_been_bothered_by_these_symptoms_poor_appetite_weight_loss_or_over_eating",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_tired_or_having_little_energy",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_bad_about_yourself_or_feeling_that_you_are_a_failure_or_that_you_have_let_yourself_or_your_family_down",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_concentrating_on_school_work_reading_or_watching_tv",
+  "some_people_who_feel_really_down_often_feel_like_hurting_themselves_or_even_killing_themselves_or_thoughts_that_they_would_be_better_off_dead_have_you_ever_felt_this_way"
+)
+
+```
+
+
+```{r}
+df17 <- df10 %>%
+  mutate(across(all_of(depression_vars), recode_likert))
+
+df18 <- df17 %>%
+  rowwise() %>%
+  mutate(
+    depression_score = sum(c_across(all_of(depression_vars)), na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+```
+
+
+
+
+
+
+
+
+```{r}
+categorical_vars <- c(
+  "what_is_your_sex",
+  "where_do_you_live",
+  "who_do_you_currently_live_with_select_all_that_apply",
+  "have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur",
+  "have_you_ever_experienced_any_form_of_abuse"
+)
+
+continuous_vars <- c(
+  "score"   # if you want to test any scale score vs depression
+)
+
+```
+
+```{r}
+library(janitor)
+
+chi_results <- lapply(categorical_vars, function(var){
+
+  tab <- table(df103[[var]], df103$depression_binary)
+
+  test <- chisq.test(tab)
+
+  list(
+    variable = var,
+    table = tab,
+    chi_square = test$statistic,
+    df = test$parameter,
+    p_value = test$p.value
+  )
+})
+
+chi_results
+
+```
+
+
+```{r}
+df_depression <- df10 %>%
+  select(
+    all_of(depression_vars),
+    depression_score,
+    depression_binary
+  )
+
+```
+
+
+```{r}
+library(dplyr)
+library(janitor)
+
+var <- "do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual"
+
+# Overall distribution
+overall <- df103 %>%
+  tabyl(.data[[var]]) %>%
+  adorn_pct_formatting(digits = 0) %>%
+  mutate(Group = "Overall")
+
+# No Depression
+no_dep <- df103 %>%
+  filter(depression_binary == 0) %>%
+  tabyl(.data[[var]]) %>%
+  adorn_pct_formatting(digits = 0) %>%
+  mutate(Group = "No Depression")
+
+# Yes Depression
+yes_dep <- df103 %>%
+  filter(depression_binary == 1) %>%
+  tabyl(.data[[var]]) %>%
+  adorn_pct_formatting(digits = 0) %>%
+  mutate(Group = "Yes Depression")
+
+# Combine into final Table 3 format
+table_sad <- bind_rows(overall, no_dep, yes_dep) %>%
+  select(response = 1, Group, n, percent) %>%
+  pivot_wider(
+    names_from = Group,
+    values_from = c(n, percent)
+  )
+
+table_sad
+
+```
+
+#lets get it done
+
+```{r}
+df66 <- df10
+```
+
+```{r}
+recode_likert_final <- function(x){
+
+  x <- as.character(x)
+
+  # 1. If value contains a number in brackets like (0), (1), (2), (3)
+  has_number <- grepl("\\([0-3]\\)", x)
+
+  out <- ifelse(
+    has_number,
+    as.numeric(sub(".*\\(([0-3])\\).*", "\\1", x)),
+    NA_real_
+  )
+
+  # 2. Handle crying/social items without numeric brackets
+  x_lower <- tolower(x)
+
+  out[is.na(out) & x_lower %in% c("d) never", "a) not at all (0)", "a) not at all")] <- 0
+  out[is.na(out) & x_lower %in% c("a) once", "b) several days (1)", "b) sometimes")] <- 1
+  out[is.na(out) & x_lower %in% c("c) severally", "c) more than half the days (2)")] <- 2
+  out[is.na(out) & x_lower %in% c("d) nearly every day (3)")] <- 3
+
+  return(out)
+}
+
+```
+
+```{r}
+depression_vars <- c(
+  "do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual",
+  "do_you_find_yourself_crying_more_than_usual",
+  "does_it_seem_that_you_ve_lost_interest_or_pleasure_in_things_that_you_used_to_really_enjoy",
+  "do_you_find_yourself_spending_less_and_less_time_with_friends",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much",
+  "how_often_have_you_been_bothered_by_these_symptoms_poor_appetite_weight_loss_or_over_eating",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_tired_or_having_little_energy",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_bad_about_yourself_or_feeling_that_you_are_a_failure_or_that_you_have_let_yourself_or_your_family_down",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_concentrating_on_school_work_reading_or_watching_tv",
+  "some_people_who_feel_really_down_often_feel_like_hurting_themselves_or_even_killing_themselves_or_thoughts_that_they_would_be_better_off_dead_have_you_ever_felt_this_way"
+)
+```
+
+```{r}
+lapply(df66[depression_vars], unique)
+
+```
+
+
+```{r}
+
+df67 <- df66 %>%
+  mutate(across(all_of(depression_vars), recode_likert_final))
+
+df68 <- df67 %>%
+  rowwise() %>%
+  mutate(
+    depression_score = sum(c_across(all_of(depression_vars)), na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+
+```
+
+```{r}
+df69 <- df68 %>%
+  mutate(
+    depression_binary = ifelse(depression_score >= 10, 1, 0)
+  )
+```
+
+```{r}
+df70 <- df69 %>%
+  mutate(
+    depression_binary = ifelse(depression_score >= 5, 1, 0)
+  )
+
+
+```
+
+
+```{r}
+summary(df69$depression_score)
+table(df70$depression_binary)
+#sapply(df69[, depression_vars], function(x) sum(is.na(x)))
+
+```
+
+```{r}
+generate_symptom_table <- function(symptom_var){
+
+  df69 %>%
+    mutate(
+      Response = case_when(
+        !!sym(symptom_var) == 0 ~ "Not at all",
+        !!sym(symptom_var) == 1 ~ "Several days",
+        !!sym(symptom_var) == 2 ~ "More than half the days",
+        !!sym(symptom_var) == 3 ~ "Nearly every day"
+      )
+    ) %>%
+    group_by(Response, depression_binary) %>%
+    summarise(N = n(), .groups = "drop") %>%
+    tidyr::complete(Response, depression_binary, fill = list(N = 0)) %>%
+    group_by(Response) %>%
+    mutate(
+      Overall_N = sum(N),
+      Overall_percent = round(Overall_N / sum(Overall_N) * 100, 1)
+    ) %>%
+    ungroup() %>%
+    tidyr::pivot_wider(
+      names_from = depression_binary,
+      values_from = N,
+      names_prefix = "Dep_"
+    ) %>%
+    mutate(
+      NoDep_N = Dep_0,
+      YesDep_N = Dep_1,
+      NoDep_percent = round(NoDep_N / (NoDep_N + YesDep_N) * 100, 1),
+      YesDep_percent = round(YesDep_N / (NoDep_N + YesDep_N) * 100, 1)
+    ) %>%
+    select(
+      Response,
+      Overall_N,
+      Overall_percent,
+      NoDep_N,
+      NoDep_percent,
+      YesDep_N,
+      YesDep_percent
+    )
+}
+
+# Test with first symptom
+generate_symptom_table(depression_vars[1]) %>% knitr::kable()
+
+```
+
+```{r}
+full_table3 <- lapply(depression_vars, generate_symptom_table)
+
+names(full_table3) <- depression_vars
+
+```
+
+```{r}
+library(dplyr)
+library(knitr)
+
+# Combine all 10 tables into one
+combined_table <- bind_rows(
+  lapply(seq_along(full_table3), function(i){
+    full_table3[[i]] %>%
+      mutate(Variable = names(full_table3)[i])
+  })
+)
+
+# Reorder columns for better readability
+combined_table <- combined_table %>%
+  select(Variable, Response, Overall_N, Overall_percent,
+         NoDep_N, NoDep_percent, YesDep_N, YesDep_percent)
+
+# Display the table
+combined_table %>% kable(
+  caption = "Distribution of Depression Symptoms by Depression Status (N=122)",
+  digits = 1
+)
+
+```
+
+```{r}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+# Combine all tables into one
+combined_table <- bind_rows(
+  lapply(seq_along(full_table3), function(i){
+    full_table3[[i]] %>%
+      mutate(Variable = names(full_table3)[i])
+  })
+)
+
+# Reorder columns
+combined_table <- combined_table %>%
+  select(Variable, Response, Overall_N, Overall_percent,
+         NoDep_N, NoDep_percent, YesDep_N, YesDep_percent)
+
+# Create kable with styling
+combined_table %>%
+  kable(
+    caption = "Distribution of Depression Symptoms by Depression Status (N=122)",
+    col.names = c("Variable", "Response", "Overall N", "Overall %", 
+                  "No Depression N", "No Depression %", 
+                  "Depressed N", "Depressed %"),
+    align = c("l","l","r","r","r","r","r","r"),
+    digits = 1,
+    format = "html"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE, background = "#D3D3D3") # header row styling
+
+```
+
+
+```{r}
+categorical_vars <- c(
+  "what_is_your_sex",
+  "where_do_you_live",
+  "who_do_you_currently_live_with_select_all_that_apply",
+  "have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur"
+)
+
+```
+
+
+```{r}
+chi_results <- lapply(categorical_vars, function(var){
+  
+  # Ensure factor
+  df70[[var]] <- as.factor(df70[[var]])
+  
+  tab <- table(df70[[var]], df69$depression_binary)
+  
+  # Chi-square test (use fisher if expected < 5)
+  if(any(chisq.test(tab)$expected < 5)){
+    test <- fisher.test(tab)
+    chi_val <- NA
+    df_val <- NA
+    p_val <- test$p.value
+  } else {
+    test <- chisq.test(tab)
+    chi_val <- test$statistic
+    df_val <- test$parameter
+    p_val <- test$p.value
+  }
+  
+  data.frame(
+    Variable = var,
+    Chi_square = chi_val,
+    df = df_val,
+    p_value = p_val
+  )
+})
+
+chi_results_df <- do.call(rbind, chi_results)
+chi_results_df %>% knitr::kable(
+  caption = "Chi-square Tests for Depression vs Key Categorical Variables"
+)
+
+```
+
+
+
+
+```{r}
+categorical_vars <- c(
+  "what_is_your_sex",
+  "where_do_you_live",
+  "who_do_you_currently_live_with_select_all_that_apply",
+  "have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur",
+  "is_there_physical_violence_in_your_home",
+  "is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends",
+  "have_you_ever_experienced_any_form_of_abuse",
+  "did_you_seek_help_for_any_experiences_of_harm_or_unwanted_sex",
+  "are_you_currently_in_school",
+  "are_you_currently_involved_in_any_work_for_pay",
+  "who_do_you_talk_to_when_you_have_a_problem",
+  "has_someone_left_in_the_last_1_year",
+  "is_there_anyone_new_at_home"
+)
+
+```
+
+```{r}
+categorical_vars %in% names(df70)
+
+```
+
+```{r}
+# Keep only variables present in df70
+categorical_vars <- categorical_vars[categorical_vars %in% names(df70)]
+
+```
+
+```{r}
+df70[categorical_vars] <- lapply(df70[categorical_vars], function(x) as.factor(x))
+
+```
+
+```{r}
+chi_results <- lapply(categorical_vars, function(var){
+  tab <- table(df70[[var]], df70$depression_binary)
+  
+  if(any(chisq.test(tab)$expected < 5)){
+    test <- fisher.test(tab)
+    data.frame(Variable = var, Chi_square = NA, df = NA, p_value = test$p.value)
+  } else {
+    test <- chisq.test(tab)
+    data.frame(Variable = var, Chi_square = test$statistic, df = test$parameter, p_value = test$p.value)
+  }
+})
+
+chi_results_df <- do.call(rbind, chi_results)
+chi_results_df %>% knitr::kable(caption = "Chi-square / Fisher's Exact Tests for Depression")
+
+```
+
+
+```{r}
+numeric_vars <- c(
+  "depression_score",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much",
+  "how_often_have_you_been_bothered_by_these_symptoms_poor_appetite_weight_loss_or_over_eating",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_tired_or_having_little_energy",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_bad_about_yourself_or_feeling_that_you_are_a_failure_or_that_you_have_let_yourself_or_your_family_down",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_concentrating_on_school_work_reading_or_watching_tv",
+  "some_people_who_feel_really_down_often_feel_like_hurting_themselves_or_even_killing_themselves_or_thoughts_that_they_would_be_better_off_dead_have_you_ever_felt_this_way"
+)
+
+```
+
+```{r}
+sapply(numeric_vars, function(var){
+  tapply(df69[[var]], df70$depression_binary, function(x) length(unique(x)))
+})
+
+```
+
+```{r}
+numeric_vars_valid <- numeric_vars[sapply(numeric_vars, function(var){
+  all(tapply(df70[[var]], df70$depression_binary, function(x) length(unique(x)) > 1))
+})]
+
+```
+
+```{r}
+t_results <- lapply(numeric_vars_valid, function(var){
+  t_test <- t.test(df70[[var]] ~ df70$depression_binary)
+  data.frame(
+    Variable = var,
+    t_statistic = t_test$statistic,
+    df = t_test$parameter,
+    p_value = t_test$p.value,
+    Mean_NoDep = mean(df70[[var]][df70$depression_binary==0], na.rm = TRUE),
+    Mean_Dep = mean(df70[[var]][df70$depression_binary==1], na.rm = TRUE)
+  )
+})
+
+t_results_df <- do.call(rbind, t_results)
+t_results_df %>% knitr::kable(caption = "t-tests for Numeric Variables by Depression Status")
+
+```
+
+
+
+```{r}
+# Example model: depression ~ sex + living situation + bullying
+logit_model <- glm(
+  depression_binary ~ what_is_your_sex +
+    where_do_you_live +
+    who_do_you_currently_live_with_select_all_that_apply +
+    have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur,
+  data = df70,
+  family = binomial(link = "logit")
+)
+
+summary(logit_model)
+
+# Odds ratios with 95% CI
+exp(cbind(OR = coef(logit_model), confint(logit_model)))
+
+```
+
+
 
 
