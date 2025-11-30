@@ -128,10 +128,7 @@ tabyl(df, currently_live1) %>%
 
 
 
-```{r}
-tabyl(df, currently_live) %>% 
-  adorn_pct_formatting()
-```
+
 
 ```{r}
 library(dplyr)
@@ -194,12 +191,6 @@ tabyl(df, are_you_currently_in_school) %>%
 ```
 
 
-```{r}
-# Check frequencies
-tabyl(df, who_lives_with) %>%
-  adorn_pct_formatting()
-
-```
 
 ```{r}
 tabyl(df, is_there_anyone_new_at_home) %>% 
@@ -438,11 +429,6 @@ tabyl(df10_use, do_any_of_your_friends_use_select_all_that_apply) %>%
 
 ```
 
-```{r}
-tabyl(df10,does_anyone_in_your_family_home_use_select_all_that_apply) %>% 
-  adorn_pct_formatting()
-
-```
 
 ```{r}
 library(dplyr)
@@ -610,11 +596,6 @@ tabyl(df10_sex, have_you_ever_had_sex) %>%
   filter(!is.na(have_you_ever_had_sex))
 ```
 
-```{r}
-tabyl(df10_sex, what_was_the_main_reason_you_had_sex_for_the_first_time) %>%
-  adorn_pct_formatting() %>%
-  filter(!is.na(what_was_the_main_reason_you_had_sex_for_the_first_time))
-```
 
 ```{r}
 library(dplyr)
@@ -715,15 +696,8 @@ tabyl(df10_mean, what_does_the_term_safe_sex_mean_to_you) %>%
 ```
 
 
-```{r}
-tabyl(df10, what_does_the_term_safe_sex_mean_to_you) %>%
-  adorn_pct_formatting() %>%
-  filter(!is.na(what_does_the_term_safe_sex_mean_to_you)) %>%
-  select(-valid_percent)
-```
 
 ```{r}
-
 
 tabyl(df10, how_many_sexual_partners_have_you_had_for_the_past_12_months) %>%
   adorn_pct_formatting() %>%
@@ -731,12 +705,7 @@ tabyl(df10, how_many_sexual_partners_have_you_had_for_the_past_12_months) %>%
   select(-valid_percent)
 ```
 
-```{r}
-tabyl(df10, what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from) %>%
-  adorn_pct_formatting() %>%
-  filter(!is.na(what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from)) %>%
-  select(-valid_percent)
-```
+
 
 
 ```{r}
@@ -896,7 +865,6 @@ df11 <- df %>%
     depression = ifelse(do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual %in% c("Yes"), 1, 0),
     ptsd = ifelse(repeated_disturbing_and_unwanted_memories_of_the_stressful_experience > 0, 1, 0) # customize threshold
   )
-
 ```
 
 ```{r}
@@ -1345,6 +1313,9 @@ combined_table %>% kable(
 )
 
 ```
+
+
+
 
 ```{r}
 library(dplyr)
