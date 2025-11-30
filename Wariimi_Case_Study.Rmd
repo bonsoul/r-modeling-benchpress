@@ -1446,6 +1446,30 @@ t_results_df %>% knitr::kable(caption = "t-tests for Numeric Variables by Depres
 
 ```
 
+```{r}
+wilcox_results <- lapply(numeric_vars_valid, function(var){
+  test <- wilcox.test(df70[[var]] ~ df70$depression_binary)
+  
+  data.frame(
+    Variable = var,
+    W_statistic = test$statistic,
+    P_value = test$p.value,
+    Median_NoDep = median(df70[[var]][df70$depression_binary == 0], na.rm = TRUE),
+    Median_Dep = median(df70[[var]][df70$depression_binary == 1], na.rm = TRUE)
+  )
+})
+
+wilcox_results_df <- do.call(rbind, wilcox_results)
+
+wilcox_results_df %>%
+  knitr::kable(
+    caption = "Wilcoxon Rank-Sum Tests for Symptom Variables by Depression Status",
+    digits = 4
+  )
+
+
+```
+
 
 
 ```{r}
