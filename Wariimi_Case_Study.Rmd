@@ -117,6 +117,82 @@ data1<-  data %>%
 ```
 
 ```{r}
+data1_unique <- data %>%
+  mutate(participant_id = row_number()) %>%      # create unique ID
+  separate_rows(who_do_you_currently_live_with_select_all_that_apply, sep = ",") %>%
+  mutate(
+    who_do_you_currently_live_with_select_all_that_apply = trimws(who_do_you_currently_live_with_select_all_that_apply),
+    currently_live1 = case_when(
+      grepl("Alone", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Alone",
+      grepl("Mom|mother", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Mother",
+      grepl("Dad|father", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Father",
+      grepl("Siblings", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Siblings",
+      grepl("Grandparents", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Grandparents",
+      grepl("Relative|Auntie", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Relatives",
+      grepl("Househelp|Shamba boy", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "House help and shamba boy",
+      TRUE ~ "Other"
+    )
+  ) %>%
+  group_by(participant_id, currently_live1) %>%   # now we can group by the new ID
+  summarise() %>%
+  ungroup()
+
+tabyl(data1_unique, currently_live1) %>% adorn_pct_formatting()
+
+```
+
+```{r}
+library(dplyr)
+library(janitor)
+library(tidyr)
+library(stringr)
+
+# Create a unique participant ID if not already present
+data1 <- data %>%
+  mutate(participant_id = row_number()) %>%
+  separate_rows(who_do_you_currently_live_with_select_all_that_apply, sep = ",") %>%
+  mutate(
+    who_do_you_currently_live_with_select_all_that_apply = trimws(who_do_you_currently_live_with_select_all_that_apply),
+    currently_live1 = case_when(
+      grepl("Alone", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Alone",
+      grepl("Mom|mother", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Mother",
+      grepl("Dad|father", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Father",
+      grepl("Siblings", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Siblings",
+      grepl("Grandparents", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Grandparents",
+      grepl("Relative|Auntie", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "Relatives",
+      grepl("Househelp|Shamba boy", who_do_you_currently_live_with_select_all_that_apply, ignore.case = TRUE) ~ "House help and shamba boy",
+      TRUE ~ "Other"
+    )
+  )
+
+# Count participants per category without double-counting
+data1_unique <- data1 %>%
+  select(participant_id, currently_live1) %>%
+  distinct()  # one row per participant per category
+
+# Tabulate percentages over total unique participants
+tabyl(data1_unique, currently_live1) %>%
+  adorn_pct_formatting(digits = 1)
+
+```
+
+
+
+
+
+```{r}
+data1_unique <- data1 %>%
+  group_by(id, currently_live1) %>%  # if you have a unique participant id
+  summarise() %>%                     # one row per participant per category
+  ungroup()
+
+tabyl(data1_unique, currently_live1) %>% 
+  adorn_pct_formatting()
+
+```
+
+
+```{r}
 tabyl(data1, currently_live1) %>% 
   adorn_pct_formatting()
 ```
