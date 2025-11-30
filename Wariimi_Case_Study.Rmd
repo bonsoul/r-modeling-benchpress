@@ -81,6 +81,8 @@ df2c <- df2c[, names(df1c)]
 merged_df <- bind_rows(df1c, df2c)
 
 df <- merged_df
+
+data <- merged_df
 ```
 
 ```{r}
@@ -93,7 +95,7 @@ library(dplyr)
 library(tidyr)
 library(janitor)
 
-df <- df %>%
+data1<-  data %>%
   # split multiple responses into separate rows
   separate_rows(who_do_you_currently_live_with_select_all_that_apply, sep = ",") %>%
   mutate(
@@ -112,17 +114,10 @@ df <- df %>%
     )
   )
 
-# Create frequency table with percentages
-live_with_freq <- tabyl(df, currently_live1) %>%
-  adorn_pct_formatting()
-
-# Print
-print(live_with_freq)
-
 ```
 
 ```{r}
-tabyl(df, currently_live1) %>% 
+tabyl(data1, currently_live1) %>% 
   adorn_pct_formatting()
 ```
 
@@ -253,7 +248,7 @@ df10_clean <- df10 %>%
            TRUE ~ stringr::str_to_title(to_whom) # keep others but clean them
          ))
 
-df10_clean %>%
+ta1 <- df10_clean %>%
   count(to_whom) %>%
   mutate(percent = round(n / nrow(df10) * 100, 1))
 
@@ -293,7 +288,7 @@ df10_clean2 <- df10_clean2 %>%
 ```
 
 ```{r}
-df10_clean2 %>%
+ta2 <- df10_clean2 %>%
   tabyl(talk_to_when_in_school) %>%
   adorn_pct_formatting()
 
@@ -302,13 +297,50 @@ df10_clean2 %>%
 
 
 ```{r}
-tabyl(df10, are_there_times_when_you_miss_meals) %>% 
+ta3 <- tabyl(df10, are_there_times_when_you_miss_meals) %>% 
   adorn_pct_formatting()
 
 ```
 
 ```{r}
-tabyl(df10, do_you_go_to_school_hungry) %>% 
+library(janitor)
+library(dplyr)
+
+# ---- Table 1 ----
+tab1 <- df10_sex %>%
+  tabyl(have_you_ever_had_sex) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(have_you_ever_had_sex)) %>%
+  mutate(variable = "Have you ever had sex",
+         response = have_you_ever_had_sex) %>%
+  select(variable, response, n, percent)
+
+# ---- Table 2 ----
+tab2 <- df10_clean2 %>%
+  tabyl(talk_to_when_in_school) %>%
+  adorn_pct_formatting() %>%
+  mutate(variable = "Talk to when in school",
+         response = talk_to_when_in_school) %>%
+  select(variable, response, n, percent)
+
+# ---- Table 3 ----
+tab3 <- df10 %>%
+  tabyl(are_there_times_when_you_miss_meals) %>%
+  adorn_pct_formatting() %>%
+  mutate(variable = "Times when you miss meals",
+         response = are_there_times_when_you_miss_meals) %>%
+  select(variable, response, n, percent)
+
+# ---- Combine them ----
+combined_table <- bind_rows(tab1, tab2, tab3)
+
+combined_table
+
+```
+
+
+```{r}
+ta4 <- tabyl(df10, do_you_go_to_school_hungry) %>% 
   adorn_pct_formatting()
 
 ```
@@ -351,7 +383,7 @@ df10_part <- df10 %>%
 
 ```{r}
 # Now create the clean table
-tabyl(
+ta5 <- tabyl(
   df10_part,
   do_you_participate_in_any_sports_or_other_extra_curricular_activities_drama_music
 ) %>% 
@@ -362,7 +394,7 @@ tabyl(
 ```
 
 ```{r}
-tabyl(df10, do_you_attend_a_church_group_club_or_other_organized_activity) %>% 
+ta6 <- tabyl(df10, do_you_attend_a_church_group_club_or_other_organized_activity) %>% 
   adorn_pct_formatting()
 ```
 
@@ -422,7 +454,7 @@ df10_use <- df10 %>%
 
 
 ```{r}
-tabyl(df10_use, do_any_of_your_friends_use_select_all_that_apply) %>%
+ta7 <- tabyl(df10_use, do_any_of_your_friends_use_select_all_that_apply) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(do_any_of_your_friends_use_select_all_that_apply)) %>%
   select(-valid_percent)
@@ -510,14 +542,14 @@ df10_alcohol <- df10 %>%
 
 ```{r}
 # Recreate the clean table
-tabyl(df10_alcohol, have_you_ever_tried_taking_do_you_take_a_alcohol) %>%
+ta8 <- tabyl(df10_alcohol, have_you_ever_tried_taking_do_you_take_a_alcohol) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_a_alcohol)) %>%
   select(-valid_percent)
 ```
 
 ```{r}
-tabyl(df10, have_you_ever_tried_taking_do_you_take_b_tobacco) %>%
+ta9 <- tabyl(df10, have_you_ever_tried_taking_do_you_take_b_tobacco) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_b_tobacco)) %>%
   select(-valid_percent)
@@ -525,7 +557,7 @@ tabyl(df10, have_you_ever_tried_taking_do_you_take_b_tobacco) %>%
 
 
 ```{r}
-tabyl(df10, have_you_ever_tried_taking_do_you_take_c_miraa_khat) %>%
+ta10 <- tabyl(df10, have_you_ever_tried_taking_do_you_take_c_miraa_khat) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_c_miraa_khat)) %>%
   select(-valid_percent)
@@ -533,14 +565,14 @@ tabyl(df10, have_you_ever_tried_taking_do_you_take_c_miraa_khat) %>%
 
 
 ```{r}
-tabyl(df10,have_you_ever_tried_taking_do_you_take_d_heroin) %>%
+ta11 <- tabyl(df10,have_you_ever_tried_taking_do_you_take_d_heroin) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_d_heroin)) %>%
   select(-valid_percent)
 ```
 
 ```{r}
-tabyl(df10,have_you_ever_tried_taking_do_you_take_e_cocaine) %>%
+ta12 <- tabyl(df10,have_you_ever_tried_taking_do_you_take_e_cocaine) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_e_cocaine)) %>%
   select(-valid_percent)
@@ -549,21 +581,21 @@ tabyl(df10,have_you_ever_tried_taking_do_you_take_e_cocaine) %>%
 
 
 ```{r}
-tabyl(df10,have_you_ever_tried_taking_do_you_take_f_kuber) %>%
+ta13 <- tabyl(df10,have_you_ever_tried_taking_do_you_take_f_kuber) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_f_kuber)) %>%
   select(-valid_percent)
 ```
 
 ```{r}
-tabyl(df10,have_you_ever_tried_taking_do_you_take_g_mandrax) %>%
+ta14 <- tabyl(df10,have_you_ever_tried_taking_do_you_take_g_mandrax) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_g_mandrax)) %>%
   select(-valid_percent)
 ```
 
 ```{r}
-tabyl(df10,have_you_ever_tried_taking_do_you_take_h_others) %>%
+ta15 <- tabyl(df10,have_you_ever_tried_taking_do_you_take_h_others) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_h_others)) %>%
   select(-valid_percent)
@@ -591,10 +623,15 @@ df10_sex <- df10 %>%
 
 ```{r}
 # Clean final table
-tabyl(df10_sex, have_you_ever_had_sex) %>%
+ta16 <- tabyl(df10_sex, have_you_ever_had_sex) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_had_sex))
 ```
+
+
+
+
+
 
 
 ```{r}
@@ -625,7 +662,7 @@ df10_se <- df10_sex %>%
 
 ```{r}
 # Create clean table
-tabyl(df10_se, what_was_the_main_reason_you_had_sex_for_the_first_time) %>%
+ta17 <- tabyl(df10_se, what_was_the_main_reason_you_had_sex_for_the_first_time) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(what_was_the_main_reason_you_had_sex_for_the_first_time)) %>%
   select(-valid_percent)
@@ -633,7 +670,7 @@ tabyl(df10_se, what_was_the_main_reason_you_had_sex_for_the_first_time) %>%
 
 ```{r}
 
-tabyl(df10, was_the_first_person_you_had_sex_with_older_younger_or_same_age_as_you) %>%
+ta18 <- tabyl(df10, was_the_first_person_you_had_sex_with_older_younger_or_same_age_as_you) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(was_the_first_person_you_had_sex_with_older_younger_or_same_age_as_you)) %>%
   select(-valid_percent)
@@ -643,7 +680,7 @@ tabyl(df10, was_the_first_person_you_had_sex_with_older_younger_or_same_age_as_y
 
 
 ```{r}
-tabyl(df10, have_you_had_sex_with_either_the_following) %>%
+ta19 <- tabyl(df10, have_you_had_sex_with_either_the_following) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_had_sex_with_either_the_following)) %>%
   select(-valid_percent)
@@ -689,7 +726,7 @@ df10_mean <- df10 %>%
 
 ```{r}
 # Create clean table
-tabyl(df10_mean, what_does_the_term_safe_sex_mean_to_you) %>%
+ta20 <- tabyl(df10_mean, what_does_the_term_safe_sex_mean_to_you) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(what_does_the_term_safe_sex_mean_to_you)) %>%
   select(-valid_percent)
@@ -699,7 +736,7 @@ tabyl(df10_mean, what_does_the_term_safe_sex_mean_to_you) %>%
 
 ```{r}
 
-tabyl(df10, how_many_sexual_partners_have_you_had_for_the_past_12_months) %>%
+ta21 <- tabyl(df10, how_many_sexual_partners_have_you_had_for_the_past_12_months) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(how_many_sexual_partners_have_you_had_for_the_past_12_months)) %>%
   select(-valid_percent)
@@ -759,7 +796,7 @@ df10_info <- df10 %>%
 
 ```{r}
 # Tabulate clean table
-tabyl(df10_info, what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from) %>%
+ta22 <- tabyl(df10_info, what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from)) %>%
   select(-valid_percent)
@@ -767,20 +804,20 @@ tabyl(df10_info, what_is_the_source_of_information_you_receive_on_std_and_reprod
 
 ```{r}
 
-tabyl(df10, repeated_disturbing_and_unwanted_memories_of_the_stressful_experience) %>%
+ta23 <- tabyl(df10, repeated_disturbing_and_unwanted_memories_of_the_stressful_experience) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(repeated_disturbing_and_unwanted_memories_of_the_stressful_experience)) %>%
   select(-valid_percent)
 ```
 
 ```{r}
-tabyl(df10, is_there_physical_violence_in_your_home) %>%
+ta24 <- tabyl(df10, is_there_physical_violence_in_your_home) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(is_there_physical_violence_in_your_home))
 ```
 
 ```{r}
-tabyl(df10, is_there_physical_violence_in_your_home) %>%
+ta25 <- tabyl(df10, is_there_physical_violence_in_your_home) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(is_there_physical_violence_in_your_home))
 
@@ -788,21 +825,19 @@ tabyl(df10, is_there_physical_violence_in_your_home) %>%
 
 ```{r}
 
-tabyl(df10, is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends) %>%
+ta26 <- tabyl(df10, is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends))
 ```
 
 ```{r}
-
-
-tabyl(df10, have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time) %>%
+ta27 <- tabyl(df10, have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time))
 ```
 
 ```{r}
-tabyl(df10, did_you_seek_help_for_any_experiences_of_harm_or_unwanted_sex) %>%
+ta28 <- tabyl(df10, did_you_seek_help_for_any_experiences_of_harm_or_unwanted_sex) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(did_you_seek_help_for_any_experiences_of_harm_or_unwanted_sex))
 
@@ -838,7 +873,7 @@ df10_picked <- df10 %>%
 
 ```{r}
 # Tabulate clean table
-tabyl(df10_picked, have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur) %>%
+ta29 <- tabyl(df10_picked, have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur))
 ```
@@ -847,9 +882,121 @@ tabyl(df10_picked, have_you_ever_been_picked_on_or_bullied_is_that_still_a_probl
 
 
 ```{r}
-tabyl(df10, is_there_physical_violence_in_your_home) %>% adorn_pct_formatting()
-tabyl(df10, is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends) %>% adorn_pct_formatting()
-tabyl(df10, have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time) %>% adorn_pct_formatting()
+ta30 <- tabyl(df10, is_there_physical_violence_in_your_home) %>% adorn_pct_formatting()
+ta31 <- tabyl(df10, is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends) %>% adorn_pct_formatting()
+ta32 <- tabyl(df10, have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time) %>% adorn_pct_formatting()
+
+```
+
+
+
+```{r}
+tables_list <- list(
+  ta1, ta2, ta3, ta4, ta5,
+  ta6, ta7, ta8, ta9, ta10,
+  ta11, ta12, ta13, ta14, ta15,
+  ta16, ta17, ta18, ta19, ta20,
+  ta21, ta22, ta23, ta24, ta25,
+  ta26, ta27, ta28, ta29, ta30,
+  ta31, ta32
+)
+
+```
+
+```{r}
+tables_list <- lapply(tables_list, function(x) {
+  x %>% mutate(
+    percent = as.character(percent),
+    n = as.numeric(n)   # ensure n is numeric
+  )
+})
+
+combined_table <- bind_rows(tables_list)
+
+
+```
+
+```{r}
+align_vec <- ifelse(sapply(combined_table, is.numeric), "r", "l")
+
+combined_table %>%
+  kbl(
+    caption = "Combined Summary Table",
+    align = align_vec
+  ) %>%
+  kable_classic(full_width = FALSE)
+
+```
+
+
+```{r}
+library(kableExtra)
+
+combined_table %>%
+  kbl(
+    caption = "Combined Summary Table",
+    align = "l l r r"
+  ) %>%
+  kable_classic(full_width = FALSE)
+
+```
+
+
+
+
+
+
+```{r}
+make_long_tabyl <- function(data, var){
+  
+  tab <- tabyl(data, {{ var }}) %>%
+    adorn_pct_formatting()
+  
+  first_col <- colnames(tab)[1]   # ✅ safely get first column name
+  
+  tab %>%
+    filter(!is.na(.data[[first_col]])) %>%
+    mutate(Variable = deparse(substitute(var))) %>%
+    rename(Response = all_of(first_col)) %>%
+    select(Variable, Response, n, percent)
+}
+
+```
+
+```{r}
+t1  <- make_long_tabyl(df10, is_there_physical_violence_in_your_home)
+
+t2  <- make_long_tabyl(df10, is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends)
+
+t3  <- make_long_tabyl(df10, 
+  have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_raped_on_a_date_or_at_any_other_time
+)
+
+t4  <- make_long_tabyl(df10, did_you_seek_help_for_any_experiences_of_harm_or_unwanted_sex)
+
+t5  <- make_long_tabyl(df10_picked, 
+  have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur
+)
+
+t6  <- make_long_tabyl(df10_sex, have_you_ever_had_sex)
+
+t7  <- make_long_tabyl(df10_mean, what_does_the_term_safe_sex_mean_to_you)
+
+t8  <- make_long_tabyl(df10_info, 
+  what_is_the_source_of_information_you_receive_on_std_and_reproductive_health_from
+)
+
+t9  <- make_long_tabyl(df10_home, does_anyone_in_your_family_home_use_select_all_that_apply)
+
+t10 <- make_long_tabyl(df10_use, do_any_of_your_friends_use_select_all_that_apply)
+
+```
+
+```{r}
+combined_table %>%
+  knitr::kable(
+    caption = "Combined Distribution of Key Psychosocial and Behavioral Variables"
+  )
 
 ```
 
@@ -858,288 +1005,6 @@ tabyl(df10, have_you_ever_been_physically_or_sexually_abused_have_you_ever_been_
 
 #bivariate analysis
 
-```{r}
-# Example: create binary depression variable
-df11 <- df %>%
-  mutate(
-    depression = ifelse(do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual %in% c("Yes"), 1, 0),
-    ptsd = ifelse(repeated_disturbing_and_unwanted_memories_of_the_stressful_experience > 0, 1, 0) # customize threshold
-  )
-```
-
-```{r}
-unique(df11$do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual)
-unique(df11$repeated_disturbing_and_unwanted_memories_of_the_stressful_experience)
-
-```
-
-
-```{r}
-library(janitor)
-
-# Depression vs sex
-tabyl(df11, what_is_your_sex, depression) %>%
-  adorn_percentages("row") %>%
-  adorn_pct_formatting() %>%
-  adorn_ns()
-
-# Chi-square test
-chisq.test(table(df11$what_is_your_sex, df11$depression))
-
-
-```
-
-```{r}
-# Example: PTSD vs bullying
-tabyl(df11, have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur, ptsd)
-chisq.test(table(df11$have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur, df10$ptsd))
-```
-
-```{r}
-# Age vs depression
-t.test(score ~ depression, data = df11)  # assuming 'score' is age; adjust if necessary
-
-# Age vs PTSD
-t.test(score ~ ptsd, data = df11)
-
-```
-
-
-```{r}
-library(dplyr)
-
-recode_likert <- function(x){
-  case_when(
-    x %in% c("Not at all", "Never", "No") ~ 0,
-    x %in% c("Several days", "Sometimes", "Mild") ~ 1,
-    x %in% c("More than half the days", "Often", "Moderate") ~ 2,
-    x %in% c("Nearly every day", "Always", "Severe", "Yes") ~ 3,
-    is.numeric(x) ~ as.numeric(x),
-    TRUE ~ NA_real_
-  )
-}
-
-```
-
-```{r}
-depression_vars <- c(
-  "do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual",
-  "do_you_find_yourself_crying_more_than_usual",
-  "does_it_seem_that_you_ve_lost_interest_or_pleasure_in_things_that_you_used_to_really_enjoy",
-  "do_you_find_yourself_spending_less_and_less_time_with_friends",
-  "how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much",
-  "how_often_have_you_been_bothered_by_these_symptoms_poor_appetite_weight_loss_or_over_eating",
-  "how_often_have_you_been_bothered_by_these_symptoms_feeling_tired_or_having_little_energy",
-  "how_often_have_you_been_bothered_by_these_symptoms_feeling_bad_about_yourself_or_feeling_that_you_are_a_failure_or_that_you_have_let_yourself_or_your_family_down",
-  "how_often_have_you_been_bothered_by_these_symptoms_trouble_concentrating_on_school_work_reading_or_watching_tv",
-  "some_people_who_feel_really_down_often_feel_like_hurting_themselves_or_even_killing_themselves_or_thoughts_that_they_would_be_better_off_dead_have_you_ever_felt_this_way"
-)
-
-```
-
-```{r}
-df101 <- df10 %>%
-  mutate(across(all_of(depression_vars), recode_likert))
-
-df102 <- df101 %>%
-  rowwise() %>%
-  mutate(
-    depression_score = sum(c_across(all_of(depression_vars)), na.rm = TRUE)
-  ) %>%
-  ungroup()
-
-```
-
-```{r}
-df103 <- df102 %>%
-  mutate(
-    depression_binary = ifelse(depression_score >= 10, 1, 0)
-  )
-
-```
-
-```{r}
-df103 <- df103 %>%
-  mutate(
-    depression_binary = factor(depression_binary, levels = c(0,1),
-                                labels = c("No Depression", "Depression"))
-  )
-
-```
-
-
-```{r}
-categorical_vars
-categorical_vars %in% names(df103)
-
-```
-
-```{r}
-categorical_vars <- categorical_vars[categorical_vars %in% names(df103)]
-categorical_vars
-
-```
-
-```{r}
-df104 <- df103 %>%
-  mutate(across(all_of(categorical_vars), as.factor))
-
-chi_results <- lapply(categorical_vars, function(var){
-
-  subdf <- df104 %>%
-    select(all_of(var), depression_binary) %>%
-    drop_na()
-
-  tab <- table(subdf[[1]], subdf$depression_binary)
-
-  test <- suppressWarnings(chisq.test(tab))
-
-  list(
-    variable = var,
-    table = tab,
-    chi_square = unname(test$statistic),
-    df = unname(test$parameter),
-    p_value = test$p.value
-  )
-})
-
-```
-
-```{r}
-chi_summary <- data.frame(
-  Variable = sapply(chi_results, function(x) x$variable),
-  Chi_Square = round(as.numeric(sapply(chi_results, function(x) x$chi_square)), 2),
-  DF = as.numeric(sapply(chi_results, function(x) x$df)),
-  P_Value = round(as.numeric(sapply(chi_results, function(x) x$p_value)), 4)
-)
-
-chi_summary
-
-```
-
-```{r}
-depression_vars <- c(
-  "do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual",
-  "do_you_find_yourself_crying_more_than_usual",
-  "does_it_seem_that_you_ve_lost_interest_or_pleasure_in_things_that_you_used_to_really_enjoy",
-  "do_you_find_yourself_spending_less_and_less_time_with_friends",
-  "how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much",
-  "how_often_have_you_been_bothered_by_these_symptoms_poor_appetite_weight_loss_or_over_eating",
-  "how_often_have_you_been_bothered_by_these_symptoms_feeling_tired_or_having_little_energy",
-  "how_often_have_you_been_bothered_by_these_symptoms_feeling_bad_about_yourself_or_feeling_that_you_are_a_failure_or_that_you_have_let_yourself_or_your_family_down",
-  "how_often_have_you_been_bothered_by_these_symptoms_trouble_concentrating_on_school_work_reading_or_watching_tv",
-  "some_people_who_feel_really_down_often_feel_like_hurting_themselves_or_even_killing_themselves_or_thoughts_that_they_would_be_better_off_dead_have_you_ever_felt_this_way"
-)
-
-```
-
-
-```{r}
-df17 <- df10 %>%
-  mutate(across(all_of(depression_vars), recode_likert))
-
-df18 <- df17 %>%
-  rowwise() %>%
-  mutate(
-    depression_score = sum(c_across(all_of(depression_vars)), na.rm = TRUE)
-  ) %>%
-  ungroup()
-
-```
-
-
-
-
-
-
-
-
-```{r}
-categorical_vars <- c(
-  "what_is_your_sex",
-  "where_do_you_live",
-  "who_do_you_currently_live_with_select_all_that_apply",
-  "have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur",
-  "have_you_ever_experienced_any_form_of_abuse"
-)
-
-continuous_vars <- c(
-  "score"   # if you want to test any scale score vs depression
-)
-
-```
-
-```{r}
-library(janitor)
-
-chi_results <- lapply(categorical_vars, function(var){
-
-  tab <- table(df103[[var]], df103$depression_binary)
-
-  test <- chisq.test(tab)
-
-  list(
-    variable = var,
-    table = tab,
-    chi_square = test$statistic,
-    df = test$parameter,
-    p_value = test$p.value
-  )
-})
-
-chi_results
-
-```
-
-
-```{r}
-df_depression <- df10 %>%
-  select(
-    all_of(depression_vars),
-    depression_score,
-    depression_binary
-  )
-
-```
-
-
-```{r}
-library(dplyr)
-library(janitor)
-
-var <- "do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual"
-
-# Overall distribution
-overall <- df103 %>%
-  tabyl(.data[[var]]) %>%
-  adorn_pct_formatting(digits = 0) %>%
-  mutate(Group = "Overall")
-
-# No Depression
-no_dep <- df103 %>%
-  filter(depression_binary == 0) %>%
-  tabyl(.data[[var]]) %>%
-  adorn_pct_formatting(digits = 0) %>%
-  mutate(Group = "No Depression")
-
-# Yes Depression
-yes_dep <- df103 %>%
-  filter(depression_binary == 1) %>%
-  tabyl(.data[[var]]) %>%
-  adorn_pct_formatting(digits = 0) %>%
-  mutate(Group = "Yes Depression")
-
-# Combine into final Table 3 format
-table_sad <- bind_rows(overall, no_dep, yes_dep) %>%
-  select(response = 1, Group, n, percent) %>%
-  pivot_wider(
-    names_from = Group,
-    values_from = c(n, percent)
-  )
-
-table_sad
-
-```
 
 #lets get it done
 
@@ -1525,6 +1390,68 @@ exp(cbind(OR = coef(logit_model), confint(logit_model)))
 
 ```
 
+#multivariate anaalysis
 
+```{r}
+df72 <- df69 %>%
+  mutate(
+    depression_binary = as.numeric(depression_binary),
+
+    who_do_you_currently_live_with_binary =
+      as.numeric(who_do_you_currently_live_with_select_all_that_apply),
+
+    is_there_physical_violence_in_your_home_binary =
+      as.numeric(is_there_physical_violence_in_your_home),
+
+    is_there_violence_at_your_school_binary =
+      as.numeric(is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends),
+
+    who_do_you_talk_to_binary =
+      as.numeric(who_do_you_talk_to_when_you_have_a_problem)
+  )
+
+```
+
+```{r}
+model_final <- glm(
+  depression_binary ~
+    who_do_you_currently_live_with_binary +
+    is_there_physical_violence_in_your_home_binary +
+    is_there_violence_at_your_school_binary +
+    who_do_you_talk_to_binary,
+  data = df72,
+  family = binomial(link = "logit")
+)
+
+```
+
+```{r}
+library(broom)
+
+multivariate_results <- tidy(
+  model_final,
+  exponentiate = TRUE,
+  conf.int = TRUE,
+  conf.method = "wald"
+)
+
+multivariate_results %>%
+  knitr::kable(
+    digits = 3,
+    caption = "Multivariate Logistic Regression: Adjusted Odds Ratios for Depression"
+  )
+
+```
+
+```{r}
+library(car)
+vif(model_final)
+
+```
+
+```{r}
+anova(model_final, test = "Chisq")
+
+```
 
 
