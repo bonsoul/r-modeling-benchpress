@@ -763,6 +763,117 @@ ta19 <- tabyl(df10, have_you_had_sex_with_either_the_following) %>%
 ```
 
 
+#PSTD SCORE
+
+```{r}
+ptsd_vars <- c(
+  "repeated_disturbing_and_unwanted_memories_of_the_stressful_experience",
+  "repeated_disturbing_dreams_of_the_stressful_experience",
+  "suddenly_feeling_or_acting_as_if_the_stressful_experience_were_actually_happening_again_as_if_you_were_actually_back_there_reliving_it",
+  "feeling_very_upset_when_something_reminded_you_of_the_stressful_experience",
+  "having_strong_physical_reactions_when_something_reminded_you_of_the_stressful_experience_for_example_heart_pounding_trouble_breathing_sweating",
+  "avoiding_memories_thoughts_or_feelings_related_to_the_stressful_experience",
+  "avoiding_external_reminders_of_the_stressful_experience_for_example_people_places_conversations_activities_objects_or_situations",
+  "trouble_remembering_important_parts_of_the_stressful_experience",
+  "having_strong_negative_beliefs_about_yourself_other_people_or_the_world_for_example_having_thoughts_such_as_i_am_bad_there_is_something_seriously_wrong_with_me_no_one_can_be_trusted_the_world_is_completely_dangerous",
+  "blaming_yourself_or_someone_else_for_the_stressful_experience_or_what_happened_after_it",
+  "having_strong_negative_feelings_such_as_fear_horror_anger_guilt_or_shame",
+  "loss_of_interest_in_activities_that_you_used_to_enjoy",
+  "feeling_distant_or_cut_off_from_other_people",
+  "trouble_experiencing_positive_feelings_for_example_being_unable_to_feel_happiness_or_have_loving_feelings_for_people_close_to_you",
+  "irritable_behavior_angry_outbursts_or_acting_aggressively",
+  "taking_too_many_risks_or_doing_things_that_could_cause_you_harm",
+  "being_superalert_or_watchful_or_on_guard",
+  "feeling_jumpy_or_easily_startled",
+  "having_difficulty_concentrating",
+  "trouble_falling_or_staying_asleep"
+)
+
+
+```
+
+
+
+
+
+```{r}
+df75 <- df72 %>%
+  mutate(across(all_of(ptsd_vars), ~ case_when(
+    . == "0) Never" ~ 0,
+    . == "1) Once in a while" ~ 1,
+    TRUE ~ NA_real_
+  ))) %>%
+  rowwise() %>%
+  mutate(ptsd_score = sum(c_across(all_of(ptsd_vars)), na.rm = TRUE)) %>%
+  ungroup()
+
+```
+
+```{r}
+df76 <- df75 %>%
+  mutate(ptsd_binary = ifelse(ptsd_score >= 4, 1, 0))
+
+```
+
+```{r}
+# Assuming:
+# df76 has the ptsd_score and ptsd_binary columns
+# ptsd_vars is a vector of your PTSD symptom variables
+
+library(dplyr)
+library(janitor)
+library(knitr)
+library(kableExtra)
+
+# 1. Convert PTSD symptom responses to numeric if needed
+df76 <- df76 %>%
+  mutate(across(all_of(ptsd_vars), ~ case_when(
+    . %in% c("0) Never", "Never") ~ 0,
+    . %in% c("1) Once in a while", "Once in a while") ~ 1,
+    TRUE ~ NA_real_
+  )))
+
+# 2. Make a long-format table for symptoms vs PTSD status
+ptsd_table <- df76 %>%
+  select(all_of(ptsd_vars), ptsd_binary) %>%
+  pivot_longer(cols = all_of(ptsd_vars), names_to = "Symptom", values_to = "Response") %>%
+  group_by(Symptom, Response, ptsd_binary) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(Symptom, ptsd_binary) %>%
+  mutate(percent = round(n / sum(n) * 100, 1)) %>%
+  ungroup() %>%
+  mutate(PTSD_status = ifelse(ptsd_binary == 1, "PTSD", "No PTSD")) %>%
+  select(Symptom, Response, Overall_n = n, Percent = percent, PTSD_status)
+
+# 3. Pivot wider so columns are PTSD status
+ptsd_table_wide <- ptsd_table %>%
+  pivot_wider(names_from = PTSD_status, values_from = c(Overall_n, Percent), values_fill = 0)
+
+
+
+```
+
+
+```{r}
+ptsd_table <- df76 %>%
+  count(ptsd_binary) %>%
+  mutate(
+    Classification = ifelse(ptsd_binary == 1, "PTSD (score ≥ 4)", "No PTSD (score < 4)")
+  ) %>%
+  select(Classification, n)
+
+knitr::kable(
+  ptsd_table,
+  caption = "Classification of Participants by PTSD Status",
+  align = "l"
+)
+
+```
+
+
+
+
+
 ```{r}
 library(dplyr)
 library(janitor)
@@ -1083,6 +1194,8 @@ combined_table %>%
 
 
 #lets get it done
+
+
 
 ```{r}
 df66 <- df10
@@ -1446,7 +1559,7 @@ t_results_df %>% knitr::kable(caption = "t-tests for Numeric Variables by Depres
 
 ```
 
-```{r}
+```{r,wilcox test}
 wilcox_results <- lapply(numeric_vars_valid, function(var){
   test <- wilcox.test(df70[[var]] ~ df70$depression_binary)
   
@@ -1505,6 +1618,9 @@ df72 <- df69 %>%
 
     is_there_violence_at_your_school_binary =
       as.numeric(is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends),
+    
+    are_you_currently_in_school_binary = 
+      as.numeric(are_you_currently_in_school),
 
     who_do_you_talk_to_binary =
       as.numeric(who_do_you_talk_to_when_you_have_a_problem)
@@ -1518,12 +1634,31 @@ model_final <- glm(
     who_do_you_currently_live_with_binary +
     is_there_physical_violence_in_your_home_binary +
     is_there_violence_at_your_school_binary +
-    who_do_you_talk_to_binary,
+    who_do_you_talk_to_binary + 
+    are_you_currently_in_school_binary,
   data = df72,
   family = binomial(link = "logit")
 )
 
 ```
+
+```{r}
+library(logistf)
+
+firth_model <- logistf(
+  depression_binary ~
+    who_do_you_currently_live_with_binary +
+    is_there_physical_violence_in_your_home_binary +
+    is_there_violence_at_your_school_binary +
+    who_do_you_talk_to_binary +
+    are_you_currently_in_school_binary,
+  data = df72
+)
+
+summary(firth_model)
+
+```
+
 
 ```{r}
 library(broom)
@@ -1543,15 +1678,6 @@ multivariate_results %>%
 
 ```
 
-```{r}
-library(car)
-vif(model_final)
 
-```
-
-```{r}
-anova(model_final, test = "Chisq")
-
-```
 
 
