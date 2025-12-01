@@ -1391,6 +1391,26 @@ num_vars <- c(
 )
 ```
 
+```{r}
+recode_likert_ptsd <- function(x){
+  dplyr::case_when(
+    grepl("\\(0\\)", x) ~ 0,
+    grepl("\\(1\\)", x) ~ 1,
+    grepl("\\(2\\)", x) ~ 2,
+    grepl("\\(3\\)", x) ~ 3,
+    TRUE ~ NA_real_
+  )
+}
+
+
+```
+
+```{r}
+df76_fixed1 <- df_clean %>%
+  mutate(across(all_of(num_vars), recode_likert_ptsd))
+
+```
+
 
 ```{r}
 # Function for numeric bivariate analysis
@@ -1448,15 +1468,67 @@ bivariate_num_safe <- function(var, outcome, df) {
 }
 
 # Example: run for numeric variables
-numeric_vars <- c("ptsd_score")  # Add other numeric variables if needed
+#numeric_vars <- c("ptsd_score")  # Add other numeric variables if needed
 
-bivar_ptsd_num <- lapply(numeric_vars, bivariate_num_safe, outcome = "ptsd_binary", df = df_clean)
+bivar_ptsd_num <- lapply(numeric_vars, bivariate_num_safe, outcome = "ptsd_binary", df = df76_fixed1)
 bivar_ptsd_num <- do.call(rbind, bivar_ptsd_num)
 
 # Display
 bivar_ptsd_num %>% knitr::kable(caption = "Bivariate Analysis: PTSD vs Numeric Variables")
 
 ```
+
+```{r}
+# Ensure categorical variables are factors
+df76_fixed2 <- df76_fixed1 %>%
+  mutate(
+    who_do_you_currently_live_with_binary = as.factor(who_do_you_currently_live_with_select_all_that_apply),
+    have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur_binary = as.factor(have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur)
+  )
+
+```
+
+```{r}
+# Make sure ptsd_binary is numeric 0/1
+df76_fixed2 <- df76_fixed2 %>%
+  mutate(ptsd_binary = as.numeric(as.character(ptsd_binary)))
+
+# Check unique values
+unique(df76_fixed2$ptsd_binary)
+
+```
+
+
+```{r}
+
+
+# Fit logistic regression
+ptsd_model_multivar <- glm(
+  ptsd_binary ~ 
+    who_do_you_currently_live_with_binary +
+    have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur_binary +
+    how_often_have_you_been_bothered_by_these_symptoms_feeling_tired_or_having_little_energy,
+  data = df76_fixed2,
+  family = binomial
+)
+
+# View summary
+summary(ptsd_model_multivar)
+
+# Tidy results and calculate Odds Ratios
+library(broom)
+
+tidy(ptsd_model_multivar) %>%
+  mutate(
+    OR = exp(estimate),
+    lower_CI = exp(estimate - 1.96 * std.error),
+    upper_CI = exp(estimate + 1.96 * std.error)
+  ) %>%
+  select(term, OR, lower_CI, upper_CI, p.value) %>%
+  knitr::kable(caption = "Multivariate Logistic Regression: PTSD (Significant Predictors)")
+
+```
+
 
 
 
