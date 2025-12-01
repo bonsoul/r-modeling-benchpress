@@ -1,0 +1,57 @@
+---
+title: "Test"
+author: "Bonsoul"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+# Starting value in March
+march_value <- 100
+
+# Drop 50% in April
+april_value <- march_value * (1 - 0.5)
+
+# Increase 50% in May
+may_value <- april_value * (1 + 0.5)
+
+# Calculate the percent change from March
+percent_change <- ((may_value - march_value) / march_value) * 100
+
+# Print results
+cat("March value:", march_value, "\n")
+cat("April value:", april_value, "\n")
+cat("May value:", may_value, "\n")
+cat("Percent change from March:", percent_change, "%\n")
+
+```
+
+```{r}
+library(ggplot2)
+
+df <- data.frame(
+  Month = c("March", "April", "May"),
+  Value = c(100, 50, 75)
+)
+
+ggplot(df, aes(x = Month, y = Value, group = 1)) +
+  geom_line(color = "blue", size = 1.5) +
+  geom_point(color = "blue", size = 3) +
+  geom_hline(yintercept = 100, linetype = "dashed", color = "red") +
+  geom_text(aes(label = Value), vjust = -1, color = "darkgreen") +
+  labs(title = "Metric Over Time (50% Drop, then 50% Increase)",
+       y = "Metric Value", x = "Month") +
+  ylim(0, 120) +
+  theme_minimal()
+
+
+```
+
