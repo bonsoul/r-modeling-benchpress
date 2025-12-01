@@ -1195,6 +1195,358 @@ combined_table %>%
 
 #lets get it done
 
+```{r}
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+
+# 1. Define your PTSD variables
+ptsd_vars <- c(
+  "repeated_disturbing_and_unwanted_memories_of_the_stressful_experience",
+  "repeated_disturbing_dreams_of_the_stressful_experience",
+  "suddenly_feeling_or_acting_as_if_the_stressful_experience_were_actually_happening_again_as_if_you_were_actually_back_there_reliving_it",
+  "feeling_very_upset_when_something_reminded_you_of_the_stressful_experience",
+  "having_strong_physical_reactions_when_something_reminded_you_of_the_stressful_experience_for_example_heart_pounding_trouble_breathing_sweating",
+  "avoiding_memories_thoughts_or_feelings_related_to_the_stressful_experience",
+  "avoiding_external_reminders_of_the_stressful_experience_for_example_people_places_conversations_activities_objects_or_situations",
+  "trouble_remembering_important_parts_of_the_stressful_experience",
+  "having_strong_negative_beliefs_about_yourself_other_people_or_the_world_for_example_having_thoughts_such_as_i_am_bad_there_is_something_seriously_wrong_with_me_no_one_can_be_trusted_the_world_is_completely_dangerous",
+  "blaming_yourself_or_someone_else_for_the_stressful_experience_or_what_happened_after_it",
+  "having_strong_negative_feelings_such_as_fear_horror_anger_guilt_or_shame",
+  "loss_of_interest_in_activities_that_you_used_to_enjoy",
+  "feeling_distant_or_cut_off_from_other_people",
+  "trouble_experiencing_positive_feelings_for_example_being_unable_to_feel_happiness_or_have_loving_feelings_for_people_close_to_you",
+  "irritable_behavior_angry_outbursts_or_acting_aggressively",
+  "taking_too_many_risks_or_doing_things_that_could_cause_you_harm",
+  "being_superalert_or_watchful_or_on_guard",
+  "feeling_jumpy_or_easily_startled",
+  "having_difficulty_concentrating",
+  "trouble_falling_or_staying_asleep"
+)
+
+
+```
+
+```{r}
+
+# 2. Recode PTSD symptoms to numeric (0 = Never, 1 = Once in a while)
+df80 <- df10 %>%
+  mutate(across(all_of(ptsd_vars), ~ case_when(
+    . %in% c("0) Never", "Never") ~ 0,
+    . %in% c("1) Once in a while", "Once in a while") ~ 1,
+    TRUE ~ NA_real_
+  )))
+
+
+df_clean <- df80 %>%
+  mutate(across(all_of(ptsd_vars),
+                ~ case_when(
+                    . %in% c("0) Never", "0") ~ 0,
+                    . %in% c("1) Once in a while", "1") ~ 1,
+                    TRUE ~ NA_real_
+                )
+  ))
+
+
+```
+
+```{r}
+# Step 2: Calculate ptsd_score
+df_clean <- df_clean %>%
+  rowwise() %>%
+  mutate(ptsd_score = sum(c_across(all_of(ptsd_vars)), na.rm = TRUE)) %>%
+  ungroup()
+
+# Step 3: Create binary variable
+df_clean <- df_clean %>%
+  mutate(ptsd_binary = ifelse(ptsd_score >= 4, "PTSD", "No PTSD"))
+```
+
+```{r}
+# Step 4: Generate symptom table
+ptsd_table <- lapply(ptsd_vars, function(var){
+  df_clean %>%
+    mutate(Response = ifelse(.data[[var]] == 1, "Once in a while", "Never")) %>%
+    group_by(Symptom = var, Response, ptsd_binary) %>%
+    summarise(N = n(), .groups = "drop") %>%
+    tidyr::complete(Response, ptsd_binary, fill = list(N = 0)) %>%
+    group_by(Symptom, Response) %>%
+    mutate(Overall_N = sum(N)) %>%
+    ungroup() %>%
+    tidyr::pivot_wider(names_from = ptsd_binary,
+                       values_from = N,
+                       values_fill = 0) %>%
+    rename(NoPTSD_N = `No PTSD`, YesPTSD_N = `PTSD`)
+})
+
+combined_ptsd_table <- bind_rows(ptsd_table)
+```
+
+```{r}
+print(combined_ptsd_table, n = nrow(combined_ptsd_table))
+```
+
+
+```{r}
+# cat_vars <- c(
+  "what_is_your_sex",
+  "where_do_you_live",
+  "who_do_you_currently_live_with_select_all_that_apply",
+  "have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur",
+  "is_there_physical_violence_in_your_home",
+  "is_there_violence_at_your_school_in_your_neighbourhood_among_your_friends",
+  "have_you_ever_experienced_any_form_of_abuse",
+  "did_you_seek_help_for_any_experiences_of_harm_or_unwanted_sex",
+  "are_you_currently_in_school",
+  "are_you_currently_involved_in_any_work_for_pay",
+  "who_do_you_talk_to_when_you_have_a_problem",
+  "has_someone_left_in_the_last_1_year",
+  "is_there_anyone_new_at_home"
+)
+
+```
+
+```{r}
+bivariate_cat_safe <- function(var, outcome, df) {
+  # Check if variable exists in df
+  if(!var %in% colnames(df)){
+    return(data.frame(
+      Variable = var,
+      Statistic = NA,
+      p_value = NA
+    ))
+  }
+  
+  x <- df[[var]]
+  y <- df[[outcome]]
+  
+  # Check lengths
+  if(length(x) != length(y)){
+    warning(paste("Skipping", var, "- lengths do not match"))
+    return(data.frame(
+      Variable = var,
+      Statistic = NA,
+      p_value = NA
+    ))
+  }
+  
+  # Remove NAs
+  tbl <- table(factor(x), factor(y), useNA = "no")
+  
+  if(nrow(tbl) < 2 || ncol(tbl) < 2){
+    return(data.frame(
+      Variable = var,
+      Statistic = NA,
+      p_value = NA
+    ))
+  }
+  
+  test <- tryCatch({
+    if(any(chisq.test(tbl)$expected < 5)){
+      fisher.test(tbl)
+    } else {
+      chisq.test(tbl)
+    }
+  }, error = function(e){ 
+    return(NULL)
+  })
+  
+  if(is.null(test)){
+    return(data.frame(
+      Variable = var,
+      Statistic = NA,
+      p_value = NA
+    ))
+  } else {
+    return(data.frame(
+      Variable = var,
+      Statistic = ifelse(!is.null(test$statistic), as.numeric(test$statistic), NA),
+      p_value = test$p.value
+    ))
+  }
+}
+
+```
+
+```{r}
+# Run for PTSD categorical variables
+bivar_ptsd_cat <- lapply(cat_vars, bivariate_cat_safe, outcome = "ptsd_binary", df = df76)
+bivar_ptsd_cat <- do.call(rbind, bivar_ptsd_cat)
+
+# Display
+bivar_ptsd_cat %>% knitr::kable(caption = "Bivariate Analysis: PTSD vs Categorical Variables")
+```
+
+
+```{r}
+num_vars <- c(
+  "ptsd_score",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much",
+  "how_often_have_you_been_bothered_by_these_symptoms_poor_appetite_weight_loss_or_over_eating",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_tired_or_having_little_energy",
+  "how_often_have_you_been_bothered_by_these_symptoms_feeling_bad_about_yourself_or_feeling_that_you_are_a_failure_or_that_you_have_let_yourself_or_your_family_down",
+  "how_often_have_you_been_bothered_by_these_symptoms_trouble_concentrating_on_school_work_reading_or_watching_tv",
+  "some_people_who_feel_really_down_often_feel_like_hurting_themselves_or_even_killing_themselves_or_thoughts_that_they_would_be_better_off_dead_have_you_ever_felt_this_way"
+)
+```
+
+
+```{r}
+# Function for numeric bivariate analysis
+bivariate_num_safe <- function(var, outcome, df) {
+  # Check variable existence
+  if(!var %in% colnames(df)){
+    return(data.frame(
+      Variable = var,
+      t_statistic = NA,
+      df = NA,
+      p_value = NA
+    ))
+  }
+  
+  x <- df[[var]]
+  y <- df[[outcome]]
+  
+  # Remove NAs
+  complete_idx <- complete.cases(x, y)
+  x <- x[complete_idx]
+  y <- y[complete_idx]
+  
+  # Check if there are at least 2 groups with data
+  if(length(unique(y)) < 2){
+    return(data.frame(
+      Variable = var,
+      t_statistic = NA,
+      df = NA,
+      p_value = NA
+    ))
+  }
+  
+  # Run t-test
+  test <- tryCatch({
+    t.test(x ~ y)
+  }, error = function(e){
+    return(NULL)
+  })
+  
+  if(is.null(test)){
+    return(data.frame(
+      Variable = var,
+      t_statistic = NA,
+      df = NA,
+      p_value = NA
+    ))
+  } else {
+    return(data.frame(
+      Variable = var,
+      t_statistic = as.numeric(test$statistic),
+      df = as.numeric(test$parameter),
+      p_value = test$p.value
+    ))
+  }
+}
+
+# Example: run for numeric variables
+numeric_vars <- c("ptsd_score")  # Add other numeric variables if needed
+
+bivar_ptsd_num <- lapply(numeric_vars, bivariate_num_safe, outcome = "ptsd_binary", df = df_clean)
+bivar_ptsd_num <- do.call(rbind, bivar_ptsd_num)
+
+# Display
+bivar_ptsd_num %>% knitr::kable(caption = "Bivariate Analysis: PTSD vs Numeric Variables")
+
+```
+
+
+
+```{r}
+
+
+# 4. Function to generate table for each symptom
+generate_ptsd_table <- function(symptom_var) {
+  
+  df81 %>%
+    mutate(
+      Response = case_when(
+        !!sym(symptom_var) == 0 ~ "Never",
+        !!sym(symptom_var) == 1 ~ "Once in a while"
+      )
+    ) %>%
+    group_by(Response, ptsd_binary) %>%
+    summarise(N = n(), .groups = "drop") %>%
+    tidyr::complete(Response, ptsd_binary, fill = list(N = 0)) %>%
+    group_by(Response) %>%
+    mutate(
+      Overall_N = sum(N),
+      Overall_percent = round(N / sum(N) * 100, 1)
+    ) %>%
+    ungroup() %>%
+    tidyr::pivot_wider(
+      names_from = ptsd_binary,
+      values_from = N,
+      names_prefix = "PTSD_"
+    ) %>%
+    mutate(
+      NoPTSD_N = PTSD_0,
+      YesPTSD_N = PTSD_1,
+      NoPTSD_percent = round(NoPTSD_N / (NoPTSD_N + YesPTSD_N) * 100, 1),
+      YesPTSD_percent = round(YesPTSD_N / (NoPTSD_N + YesPTSD_N) * 100, 1)
+    ) %>%
+    select(
+      Response,
+      Overall_N,
+      Overall_percent,
+      NoPTSD_N,
+      NoPTSD_percent,
+      YesPTSD_N,
+      YesPTSD_percent
+    )
+}
+
+
+```
+
+```{r}
+# 5. Generate table for all PTSD symptoms
+full_ptsd_table <- lapply(ptsd_vars, generate_ptsd_table)
+names(full_ptsd_table) <- ptsd_vars
+
+# 6. Combine all tables into one
+combined_ptsd_table <- bind_rows(
+  lapply(seq_along(full_ptsd_table), function(i) {
+    full_ptsd_table[[i]] %>%
+      mutate(Symptom = names(full_ptsd_table)[i])
+  })
+)
+
+# Reorder columns for readability
+combined_ptsd_table <- combined_ptsd_table %>%
+  select(Symptom, Response, Overall_N, Overall_percent,
+         NoPTSD_N, NoPTSD_percent, YesPTSD_N, YesPTSD_percent)
+
+# 7. Display the table
+combined_ptsd_table %>%
+  kable(
+    caption = "Distribution of PTSD Symptoms by PTSD Status (N=122)",
+    digits = 1
+  ) %>%
+  kable_classic(full_width = FALSE)
+
+```
+
+```{r}
+# Print all rows of the table in the console
+print(combined_ptsd_table, n = nrow(combined_ptsd_table))
+
+
+```
+
+
+
+
+#depresssion
+
 
 
 ```{r}
