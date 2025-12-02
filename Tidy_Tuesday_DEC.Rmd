@@ -166,5 +166,18 @@ corrplot(cor(sechselaeuten[, sapply(sechselaeuten, is.numeric)]), method="circle
 
 ```
 
+```{r}
+library(GGally)
+
+ggcorr(num_vars, label = TRUE)
+
+```
+
+
+```{r}
+corrplot(cor(num_vars), method = "circle")
+```
+
+
 
 
