@@ -205,10 +205,51 @@ num_vars %>%
   labs(title = "Density Plots for Numeric Variables")
 ```
 
+#model
+
+```{r}
+df <- sechselaeuten
+```
+
+```{r}
+df <- df %>% filter(!is.na(duration))
+```
+
+```{r, temp range}
+df1 <- df %>%
+  mutate(temp_range = tre200mx - tre200mn)
+```
+
+```{r, wetness index}
+df1 <- df1 %>%
+  mutate(wetness_index = rre150m0 - sre000m0)
+
+```
+
+```{r, dryness index}
+df1 <- df1 %>%
+  mutate(dryness_index = tre200m0 + sre000m0)
+
+```
+
+```{r, extract decade}
+df1 <-df1 %>% mutate(decade = floor(year / 10) *10)
+
+df1 <- df1 %>% mutate(year_scaled = scale(year))
+
+```
+
+```{r, binary indicators}
+df1 <- df1 %>% mutate(hot_day = ifelse(tre200m0 > median(tre200m0), 1,0))
+
+df1 <- df1 %>% mutate(wet_day = ifelse(rre150m0 > median(rre150m0), 1,0))
+
+```
 
 ```{r}
 
 ```
+
 
 
 
