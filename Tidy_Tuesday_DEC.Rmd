@@ -86,9 +86,85 @@ num_vars %>%
 
 ```
 
+```{r}
+num_vars %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(y = value, x = name)) +
+  geom_boxplot() +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Boxplots for Numeric Variables",
+       x = "Variables",
+       y = "Value")
+```
+
+```{r}
+ggplot(sechselaeuten, aes(x = year, y = duration)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Burning Duration Over Time",
+       x = "Year",
+       y = "Duration (minutes)")
+```
+
+```{r, temperature variables}
+temp_vars <- sechselaeuten %>% select(year, tre200m0,tre200mn, tre200mx)
+
+temp_vars %>%
+  pivot_longer(-year) %>%
+  ggplot(aes(x = year, y = value,color = name)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title =  "Temperature Trends Over Time",
+       x = "Year",
+       y = "Temperature")
+
+```
+
+```{r, solar radions variables}
+solar_vars <- sechselaeuten %>% select(year, sre000m0, sremaxmv)
+
+solar_vars %>%
+  pivot_longer(-year) %>%
+  ggplot(aes(x = year, y = value, color = name)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Solar Radiation Over Time",
+       x = "Year",
+       y = "Radiation")
+
+```
+
+```{r, precipitation Over Time}
+
+ggplot(sechselaeuten, aes(x = year, y = rre150m0)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Precipitation Over Time",
+       x = "Year",
+       y = "Precipitation")
+
+```
 
 
+```{r, logical variables}
+ggplot(sechselaeuten, aes(x = record))+
+  geom_bar() +
+  theme_minimal() +
+  labs(title = "Count of Record vs Non-Record Years",
+       x = "Record Year",
+       y = "Count")
+```
 
+```{r}
+library(corrplot)
+corrplot(cor(sechselaeuten[, sapply(sechselaeuten, is.numeric)]), method="circle")
+
+```
 
 
 
