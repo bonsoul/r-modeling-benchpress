@@ -177,21 +177,6 @@ tabyl(data1_unique, currently_live1) %>%
 ```
 
 
-
-
-
-```{r}
-data1_unique <- data1 %>%
-  group_by(id, currently_live1) %>%  # if you have a unique participant id
-  summarise() %>%                     # one row per participant per category
-  ungroup()
-
-tabyl(data1_unique, currently_live1) %>% 
-  adorn_pct_formatting()
-
-```
-
-
 ```{r}
 tabyl(data1, currently_live1) %>% 
   adorn_pct_formatting()
@@ -638,6 +623,8 @@ ta10 <- tabyl(df10, have_you_ever_tried_taking_do_you_take_c_miraa_khat) %>%
   filter(!is.na(have_you_ever_tried_taking_do_you_take_c_miraa_khat)) %>%
   select(-valid_percent)
 ```
+
+#THE DEPRESSION VARIABLES AND FUNCTIONS
 
 
 ```{r}
@@ -1707,7 +1694,7 @@ df70 <- df69 %>%
 
 ```{r}
 summary(df69$depression_score)
-table(df70$depression_binary)
+table(df69$depression_binary)
 #sapply(df69[, depression_vars], function(x) sum(is.na(x)))
 
 ```
