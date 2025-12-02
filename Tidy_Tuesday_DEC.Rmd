@@ -178,6 +178,31 @@ ggcorr(num_vars, label = TRUE)
 corrplot(cor(num_vars), method = "circle")
 ```
 
+```{r, scatterplots of duration vs Weather Variable}
+weather_vars <- c("tre200m0", "tre200mn", "tre200mx","sre000m0","sremaxmv","rre150m0")
 
+for (v in weather_vars) {
+  print(
+    ggplot(sechselaeuten, aes_string(x = v, y = "duration")) +
+      geom_point()+
+      geom_smooth(method = "lm", se = FALSE) +
+      theme_minimal() +
+      labs(title = paste("Duration VS", v),
+           x = v,
+           y = "Duration Minutes")
+  )
+}
+
+```
+
+```{r, density plots for numeric variables}
+num_vars %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value)) +
+  geom_density() +
+  facet_wrap(~ name, scales = "free") +
+  theme_minimal() +
+  labs(title = "Density Plots for Numeric Variables")
+```
 
 
