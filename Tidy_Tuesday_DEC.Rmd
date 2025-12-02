@@ -27,7 +27,68 @@ sechselaeuten <- tuesdata$sechselaeuten
 ```
 
 ```{r}
+library(skimr)
+
+skimr::skim(sechselaeuten)
+```
+
+#descriptive analysis
+
+```{r}
+table(sechselaeuten$record, useNA="ifany")
 
 ```
+
+```{r}
+sechselaeuten$year
+```
+
+```{r}
+sechselaeuten$duration
+```
+
+```{r}
+sechselaeuten$record
+```
+
+```{r}
+range(sechselaeuten$year)
+```
+
+```{r}
+library(ggplot2)
+
+
+ggplot(sechselaeuten, aes(x = year, y = duration)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Burning Duration Over Time",
+    x = "Year",
+    y = "Burning Duration (minutes)"
+  ) +
+  theme_minimal()
+
+
+```
+
+```{r, histogram for every numeric variables}
+
+num_vars <- sechselaeuten %>% select(where(is.numeric))
+
+num_vars %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(x = value)) + 
+  geom_histogram(bins = 20) +
+  facet_wrap(~ name, scales = "free") +
+  theme_minimal() +
+  labs(title = "Histograms for All Numeric Variables")
+
+```
+
+
+
+
+
 
 
