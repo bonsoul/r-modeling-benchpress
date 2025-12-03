@@ -569,6 +569,47 @@ df10_home <- df10 %>%
 ```
 
 ```{r}
+df_scored$phq_total <- rowSums(df_scored[depression_vars], na.rm = TRUE)
+```
+
+```{r}
+df_scored <- cut(
+  df_scored$phd_total,
+  breaks = c(-Inf, 4, 9, 14, 19, 27),
+  labels = c("No/Minimal", "Mild", "Moderate", " Moderately Severe", "Severe")
+)
+```
+
+```{r}
+positive_item_pct <- data.frame(Item = depression_vars, Positive_Percentage = NA)
+
+for(i in seq_along(depression_vars)){
+  
+  var <- depression_vars[i]
+  
+  # PHQ rule: Q1-8 positive = 2 or 3; Q9 positive = 1,2,3
+  if(i < 9){
+    positive <- df_scored[[var]] %in% c(2,3)
+  } else {
+    positive <- df_scored[[var]] %in% c(1,2,3)
+  }
+  
+  positive_item_pct$Positive_Percentage[i] <- 
+    round(mean(positive, na.rm = TRUE) * 100, 1)
+}
+
+```
+
+
+```{r}
+severity_table <- df_scored %>%
+  count(severity) %>%
+  mutate(percentage = round(n / sum(n) * 100, 1))
+
+```
+
+
+```{r}
 # Clean final table
 tabyl(df10_home, does_anyone_in_your_family_home_use_select_all_that_apply) %>%
   adorn_pct_formatting() %>%
@@ -625,6 +666,46 @@ ta10 <- tabyl(df10, have_you_ever_tried_taking_do_you_take_c_miraa_khat) %>%
 ```
 
 #THE DEPRESSION VARIABLES AND FUNCTIONS
+
+```{r}
+tabyl(df10,do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(do_you_feel_sad_or_down_or_hopeless_or_irritable_more_than_usual))
+```
+
+```{r}
+tabyl(df10,do_you_find_yourself_crying_more_than_usual) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(do_you_find_yourself_crying_more_than_usual))
+```
+
+```{r}
+tabyl(df10,does_it_seem_that_you_ve_lost_interest_or_pleasure_in_things_that_you_used_to_really_enjoy) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(does_it_seem_that_you_ve_lost_interest_or_pleasure_in_things_that_you_used_to_really_enjoy))
+
+```
+
+```{r}
+tabyl(df10,do_you_find_yourself_spending_less_and_less_time_with_friends) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(do_you_find_yourself_spending_less_and_less_time_with_friends))
+
+```
+
+
+```{r}
+tabyl(df10,how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much))
+```
+
+```{r}
+tabyl(df10,how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much) %>%
+  adorn_pct_formatting() %>%
+  filter(!is.na(how_often_have_you_been_bothered_by_these_symptoms_trouble_falling_asleep_staying_asleep_or_sleeping_too_much))
+de
+```
 
 
 ```{r}
