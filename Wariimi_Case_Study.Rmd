@@ -187,8 +187,6 @@ tabyl(data1, currently_live1) %>%
 
 
 ```{r}
-library(dplyr)
-library(janitor)
 
 df <- df %>%
   mutate(
@@ -211,8 +209,7 @@ tabyl(df, residence_case) %>%
 
 
 ```{r}
-library(dplyr)
-library(janitor)
+
 # Recode school status
 df <- df %>%
   mutate(
@@ -268,27 +265,6 @@ tabyl(df, are_you_currently_involved_in_any_work_for_pay) %>%
 
 ```{r}
 library(gtsummary)
-```
-
-
-```{r}
-table1 <- df %>%
-  select(
-    what_is_your_sex,
-    currently_live1,
-    residence_case,
-    are_you_currently_in_school,
-    what_is_the_highest_level_of_education_that_you_have_attained,
-    are_you_currently_involved_in_any_work_for_pay,
-    is_there_anyone_new_at_home,
-    has_someone_left_in_the_last_1_year
-  ) %>%
-  tbl_summary(
-    statistic = all_categorical() ~ "{n} ({p}%)"
-  )
-
-table1
-
 ```
 
 
@@ -406,9 +382,7 @@ ta4 <- tabyl(df10, do_you_go_to_school_hungry) %>%
 
 ```
 
-```{r}
-library(dplyr)
-library(janitor)
+```{r, part}
 
 df10_part <- df10 %>%
   mutate(
@@ -462,10 +436,6 @@ ta6 <- tabyl(df10, do_you_attend_a_church_group_club_or_other_organized_activity
 
 
 ```{r}
-library(dplyr)
-library(janitor)
-library(stringr)
-
 df10_use <- df10 %>%
   mutate(
     do_any_of_your_friends_use_select_all_that_apply = case_when(
@@ -524,10 +494,6 @@ ta7 <- tabyl(df10_use, do_any_of_your_friends_use_select_all_that_apply) %>%
 
 
 ```{r}
-library(dplyr)
-library(janitor)
-library(stringr)
-
 df10_home <- df10 %>%
   mutate(
     does_anyone_in_your_family_home_use_select_all_that_apply = case_when(
@@ -746,10 +712,6 @@ ta15 <- tabyl(df10,have_you_ever_tried_taking_do_you_take_h_others) %>%
 ```
 
 ```{r}
-library(dplyr)
-library(janitor)
-library(stringr)
-
 df10_sex <- df10 %>%
   mutate(
     have_you_ever_had_sex = case_when(
@@ -759,15 +721,12 @@ df10_sex <- df10 %>%
       TRUE ~ NA_character_
     )
   )
-
-
-
 ```
 
 
 ```{r}
 # Clean final table
-ta16 <- tabyl(df10_sex, have_you_ever_had_sex) %>%
+tabyl(df10_sex, have_you_ever_had_sex) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(have_you_ever_had_sex))
 ```
@@ -779,11 +738,8 @@ ta16 <- tabyl(df10_sex, have_you_ever_had_sex) %>%
 
 
 ```{r}
-library(dplyr)
-library(janitor)
-library(stringr)
 
-df10_se <- df10_sex %>%
+df10_sex <- df10_sex %>%
   mutate(
     what_was_the_main_reason_you_had_sex_for_the_first_time = case_when(
       
@@ -805,8 +761,7 @@ df10_se <- df10_sex %>%
 ```
 
 ```{r}
-# Create clean table
-ta17 <- tabyl(df10_se, what_was_the_main_reason_you_had_sex_for_the_first_time) %>%
+tabyl(df10_sex, what_was_the_main_reason_you_had_sex_for_the_first_time) %>%
   adorn_pct_formatting() %>%
   filter(!is.na(what_was_the_main_reason_you_had_sex_for_the_first_time)) %>%
   select(-valid_percent)
@@ -831,7 +786,12 @@ ta19 <- tabyl(df10, have_you_had_sex_with_either_the_following) %>%
 ```
 
 
+
+
 #PSTD SCORE
+
+
+
 
 ```{r}
 ptsd_vars <- c(
@@ -861,9 +821,6 @@ ptsd_vars <- c(
 ```
 
 
-
-
-
 ```{r}
 df75 <- df72 %>%
   mutate(across(all_of(ptsd_vars), ~ case_when(
@@ -884,15 +841,6 @@ df76 <- df75 %>%
 ```
 
 ```{r}
-# Assuming:
-# df76 has the ptsd_score and ptsd_binary columns
-# ptsd_vars is a vector of your PTSD symptom variables
-
-library(dplyr)
-library(janitor)
-library(knitr)
-library(kableExtra)
-
 # 1. Convert PTSD symptom responses to numeric if needed
 df76 <- df76 %>%
   mutate(across(all_of(ptsd_vars), ~ case_when(
@@ -942,10 +890,22 @@ knitr::kable(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+#variables count
+
+
 ```{r}
-library(dplyr)
-library(janitor)
-library(stringr)
 
 df10_mean <- df10 %>%
   mutate(
@@ -1001,9 +961,6 @@ ta21 <- tabyl(df10, how_many_sexual_partners_have_you_had_for_the_past_12_months
 
 
 ```{r}
-library(dplyr)
-library(janitor)
-library(stringr)
 
 df10_info <- df10 %>%
   mutate(
@@ -1099,9 +1056,7 @@ ta28 <- tabyl(df10, did_you_seek_help_for_any_experiences_of_harm_or_unwanted_se
 ```
 
 ```{r}
-library(dplyr)
-library(janitor)
-library(stringr)
+
 
 df10_picked <- df10 %>%
   mutate(
