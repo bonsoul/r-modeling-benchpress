@@ -1056,8 +1056,6 @@ ta28 <- tabyl(df10, did_you_seek_help_for_any_experiences_of_harm_or_unwanted_se
 ```
 
 ```{r}
-
-
 df10_picked <- df10 %>%
   mutate(
     have_you_ever_been_picked_on_or_bullied_is_that_still_a_problem_does_it_still_occur = case_when(
@@ -1643,12 +1641,9 @@ print(combined_ptsd_table, n = nrow(combined_ptsd_table))
 #depresssion
 
 
-
 ```{r}
 df66 <- df10
-```
 
-```{r}
 recode_likert_final <- function(x){
 
   x <- as.character(x)
