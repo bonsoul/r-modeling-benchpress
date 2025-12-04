@@ -1707,6 +1707,46 @@ df68 <- df67 %>%
 ```
 
 ```{r}
+df691 <- df68 %>%
+  mutate(
+    depression_group = ifelse(depression_score > 0, "Yes Depression", "No Depression")
+  )
+
+```
+
+
+```{r}
+library(dplyr)
+
+count_by_group <- function(data, var, group_var = "depression_group") {
+  
+  data %>%
+    group_by(across(all_of(var))) %>%
+    summarise(
+      Overall_n = n(),
+      NoDep_n = sum(.data[[group_var]] == "No Depression"),
+      YesDep_n = sum(.data[[group_var]] == "Yes Depression")
+    ) %>%
+    mutate(
+      Overall_pct = Overall_n / sum(Overall_n) * 100,
+      NoDep_pct = NoDep_n / sum(NoDep_n) * 100,
+      YesDep_pct = YesDep_n / sum(YesDep_n) * 100
+    )
+}
+
+```
+
+
+```{r}
+table_sadness <- count_by_group(df691, "sad_hopeless")
+table_sadness
+
+```
+
+
+
+
+```{r}
 df69 <- df68 %>%
   mutate(
     depression_binary = ifelse(depression_score >= 10, 1, 0)
