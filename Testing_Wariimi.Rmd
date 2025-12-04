@@ -11,10 +11,9 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-
 ```{r}
 data_wr <- df
+
 ```
 
 
@@ -54,7 +53,7 @@ library(dplyr)
 ```
 
 
-```{r}
+```{r, function}
 # Function to compute count + percent for one variable
 freq_table <- function(data, var) {
   data %>%
@@ -71,14 +70,6 @@ freq_table <- function(data, var) {
 full_table <- bind_rows(
   lapply(depression_vars, function(v) freq_table(data_wr, v))
 )
-```
-
-```{r}
-
-# Display as knitr table
-kable(full_table,
-      caption = "Distribution of Depression Symptom Responses",
-      col.names = c("Variable", "Response", "Count", "Percent"))
 ```
 
 
@@ -99,6 +90,91 @@ full_table %>%
   row_spec(4:6, italic = TRUE,          # example styling (adjust as needed)
            color = "gold",
            background = "blue")
+
+```
+
+```{r}
+df_scored[depression_vars] <- lapply(df_scored[depression_vars], function(x){
+  dplyr::recode(
+    x,
+    "a) Not at all (0)" = 0,
+    "b) Several days (1)" = 1,
+    "c) More than half the days (2)" = 2,
+    "d) Nearly every day (3)" = 3,
+    .default = NA_real_
+  )
+})
+
+```
+
+
+```{r}
+df_scored$phq_total <- rowSums(df_scored[depression_vars], na.rm = TRUE)
+
+```
+
+
+```{r}
+df_scored$phq_severity <- cut(
+  df_scored$phq_total,
+  breaks = c(-Inf, 4, 9, 14, 19, 27),
+  labels = c("No/Minimal", "Mild", "Moderate", "Moderately Severe", "Severe")
+)
+
+```
+
+
+```{r}
+severity_table <- df_scored %>%
+  count(phq_severity) %>%
+  mutate(percent = round(n / sum(n) * 100, 1))
+
+kable(severity_table,
+      caption = "PHQ-9 Depression Severity Classification",
+      col.names = c("Severity Level", "Count", "Percent"))
+
+```
+
+
+
+```{r}
+# Any depression = total score 5 or higher
+df_scored$any_depression <- df_scored$phq_total >= 3
+
+overall_depression_pct <- mean(df_scored$any_depression, na.rm = TRUE) * 100
+overall_depression_pct
+
+```
+
+```{r}
+df_scored$mod_plus <- df_scored$phq_total >= 10
+
+moderate_plus <- df_scored %>%
+  summarise(
+    modplus_pct = round(mean(mod_plus, na.rm = TRUE) * 100, 1)
+  )
+
+moderate_plus
+```
+
+
+```{r}
+overall_summary <- tibble(
+  Metric = c(
+    "No/Minimal (0–4)",
+    "Any Depression (≥5)",
+    "Moderate+ (≥10)"
+  ),
+  Percent = c(
+    severity_table$percent[severity_table$phq_severity == "No/Minimal"],
+    overall_depression$depression_pct,
+    moderate_plus$modplus_pct
+  )
+)
+
+kable(overall_summary,
+      caption = "Overall Depression Prevalence Summary",
+      col.names = c("Category", "Percent"))
 
 ```
 
