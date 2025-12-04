@@ -886,22 +886,6 @@ knitr::kable(
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #variables count
 
 
@@ -1148,11 +1132,6 @@ combined_table %>%
   kable_classic(full_width = FALSE)
 
 ```
-
-
-
-
-
 
 ```{r}
 make_long_tabyl <- function(data, var){
@@ -1635,9 +1614,6 @@ print(combined_ptsd_table, n = nrow(combined_ptsd_table))
 
 ```
 
-
-
-
 #depresssion
 
 
@@ -1854,9 +1830,6 @@ combined_table %>% kable(
 
 
 ```{r}
-library(dplyr)
-library(knitr)
-library(kableExtra)
 
 # Combine all tables into one
 combined_table <- bind_rows(
