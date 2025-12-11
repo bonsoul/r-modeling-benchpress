@@ -135,6 +135,22 @@ kable(severity_table,
 
 ```
 
+```{r}
+severity_table <- df_scored %>%
+  count(phq_severity) %>%
+  mutate(percent = round(n / sum(n) * 100, 1))
+
+severity_table %>%
+  kable(
+    caption = "PHQ-9 Depression Severity Classification",
+    col.names = c("Severity Level", "Count", "Percent")
+  ) %>%
+  kable_styling(bootstrap_options = "bordered") %>%
+  column_spec(2:3, bold = TRUE) %>%
+  row_spec(1:nrow(severity_table), background = "#f2f2f2")
+
+```
+
 
 
 ```{r}
