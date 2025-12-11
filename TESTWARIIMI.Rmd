@@ -71,33 +71,6 @@ library(knitr)
 
 
 ```{r}
-phq_summary <- fg %>%
-  pivot_longer(
-    everything(),
-    names_to = "ITEM",
-    values_to = "RESPONSE"
-  ) %>%
-  mutate(
-    ITEM = item_labels[ITEM]   # Replace variable names with readable item labels
-  ) %>%
-  group_by(ITEM, RESPONSE) %>%
-  summarise(
-    COUNT = n(),
-    PERCENT = round(100 * COUNT / nrow(fg), 1),
-    .groups = "drop"
-  ) %>%
-  arrange(ITEM, desc(COUNT))
-
-# Print using kable
-kable(
-  phq_summary,
-  caption = "PHQ-A Item Response Summary",
-  align = "l l r r",
-  digits = 1
-)
-```
-
-```{r}
 library(dplyr)
 library(tidyr)
 library(knitr)
@@ -153,5 +126,173 @@ phq_summary %>%
 ```
 
 
+```{r}
+library(dplyr)
+
+score_map <- c(
+  "Not at all" = 0,
+  "Several days" = 1,
+  "More than half the days" = 2,
+  "Nearly every day" = 3
+)
+
+fg_scored <- fg %>%
+  mutate(across(
+    starts_with("PHQ"),
+    ~ score_map[.]
+  ))
+
+```
+
+```{r}
+fg_scored <- fg_scored %>%
+  mutate(
+    total_phq9 = PHQ1_feeling_sad +
+                 PHQ2_crying_more +
+                 PHQ3_loss_interest +
+                 PHQ4_less_time_friends +
+                 PHQ5_sleep +
+                 PHQ6_appetite +
+                 PHQ7_tired +
+                 PHQ8_feeling_bad +
+                 PHQ9_concentration
+  )
+
+```
+
+```{r}
+fg_scored <- fg_scored %>%
+  mutate(
+    severity = case_when(
+      total_phq9 <= 4 ~ "Minimal",
+      total_phq9 <= 9 ~ "Mild",
+      total_phq9 <= 14 ~ "Moderate",
+      total_phq9 <= 19 ~ "Moderately severe",
+      TRUE ~ "Severe"
+    )
+  )
+
+```
+
+```{r}
+fg_scored <- fg_scored %>%
+  mutate(
+    positive_count = (
+      (PHQ1_feeling_sad >= 2) +
+      (PHQ2_crying_more >= 2) +
+      (PHQ3_loss_interest >= 2) +
+      (PHQ4_less_time_friends >= 2) +
+      (PHQ5_sleep >= 2) +
+      (PHQ6_appetite >= 2) +
+      (PHQ7_tired >= 2) +
+      (PHQ8_feeling_bad >= 2) +
+      (PHQ9_concentration >= 1)
+    )
+  )
+
+```
+
+
+```{r}
+fg_scored <- fg_scored %>%
+  mutate(
+    mdd_flag = case_when(
+      (PHQ1_feeling_sad >= 2 | PHQ2_crying_more >= 2) &
+      positive_count >= 5 ~ TRUE,
+      TRUE ~ FALSE
+    )
+  )
+
+```
+
+```{r}
+fg_scored <- fg_scored %>%
+  mutate(
+    suicide_risk = PHQ10_self_harm >= 1   # Q10 is self-harm in your dataset
+  )
+
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
+
+# ---- Scoring Map ----
+score_map <- c(
+  "Not at all" = 0,
+  "Several days" = 1,
+  "More than half the days" = 2,
+  "Nearly every day" = 3
+)
+
+# ---- Convert to numeric scores ----
+fg_scored <- fg %>%
+  mutate(across(
+    starts_with("PHQ"),
+    ~ score_map[.]
+  )) %>%
+  # Total score
+  mutate(
+    total_phq9 = PHQ1_feeling_sad +
+                 PHQ2_crying_more +
+                 PHQ3_loss_interest +
+                 PHQ4_less_time_friends +
+                 PHQ5_sleep +
+                 PHQ6_appetite +
+                 PHQ7_tired +
+                 PHQ8_feeling_bad +
+                 PHQ9_concentration
+  ) %>%
+  # Severity classification
+  mutate(
+    severity = case_when(
+      total_phq9 <= 4 ~ "Minimal",
+      total_phq9 <= 9 ~ "Mild",
+      total_phq9 <= 14 ~ "Moderate",
+      total_phq9 <= 19 ~ "Moderately severe",
+      TRUE ~ "Severe"
+    )
+  ) %>%
+  # Positive symptoms count
+  mutate(
+    positive_count =
+      (PHQ1_feeling_sad >= 2) +
+      (PHQ2_crying_more >= 2) +
+      (PHQ3_loss_interest >= 2) +
+      (PHQ4_less_time_friends >= 2) +
+      (PHQ5_sleep >= 2) +
+      (PHQ6_appetite >= 2) +
+      (PHQ7_tired >= 2) +
+      (PHQ8_feeling_bad >= 2) +
+      (PHQ9_concentration >= 1)
+  ) %>%
+  # MDD flag
+  mutate(
+    mdd_flag = (PHQ1_feeling_sad >= 2 | PHQ2_crying_more >= 2) &
+               (positive_count >= 5)
+  ) %>%
+  # Suicide risk (Q10)
+  mutate(
+    suicide_risk = PHQ10_self_harm >= 1
+  )
+
+# ---- Styled Table ----
+fg_scored %>%
+  select(total_phq9, severity, positive_count, mdd_flag, suicide_risk) %>%
+  kable(
+    caption = "Participant-Level PHQ-9 Teen Scoring Summary",
+    align = c("r", "l", "r", "l", "l"),
+    format = "html"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "left"
+  ) %>%
+  row_spec(0, bold = TRUE, background = "#e8e8e8")
+
+```
 
 
