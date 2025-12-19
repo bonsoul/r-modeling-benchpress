@@ -128,6 +128,10 @@ install.packages("time", dependencies = TRUE)
 ```{r}
 library(kableExtra)
 library(knitr)
+library(dplyr)
+library(tidyr)
+library(knitr)
+library(kableExtra)
 ```
 
 
@@ -187,6 +191,50 @@ phq_summary %>%
 
 ```
 
+```{r}
+phq_items_daf <- c(
+  "PHQ_item_1",
+  "PHQ_item_2",
+  "PHQ_item_3",
+  "PHQ_item_4",
+  "PHQ_item_5",
+  "PHQ_item_6",
+  "PHQ_item_7",
+  "PHQ_item_8",
+  "PHQ_item_9",
+  "PHQ_item_10"
+)
+
+
+```
+
+```{r}
+phq_map <- c(
+  "Not at all" = 0,
+  "Never" = 0,
+  "Several days" = 1,
+  "Once" = 1,
+  "Sometimes" = 1,
+  "More than half the days" = 2,
+  "Severally" = 2,
+  "Nearly every day" = 3
+)
+
+```
+
+
+```{r}
+daf1 <- daf %>%
+  mutate(
+    across(
+      all_of(phq_items_daf),
+      ~ unname(phq_map[.x])
+    )
+  )
+
+```
+
+
 
 
 ```{r}
@@ -220,6 +268,62 @@ fg <- fg %>%
   mutate(across(all_of(phq_items), ~ phq_map[.x]))
 
 ```
+
+
+```{r}
+daf2 <- daf %>%
+  mutate(
+    positive_symptoms =
+      rowSums(across(all_of(phq_items_daf[1:8]), ~ .x >= 2), na.rm = TRUE) +
+      ifelse(PHQ_item_10 >= 1, 1, 0)
+  )
+
+```
+
+
+
+```{r}
+daf3 <- daf2 %>%
+  mutate(
+    MDD_PHQA_screen = ifelse(
+      (PHQ_item_1 >= 2 | PHQ_item_2 >= 2) &
+      positive_symptoms >= 5,
+      1, 0
+    )
+  )
+
+```
+
+
+
+
+```{r}
+table(daf3$positive_symptoms)
+table(daf3$MDD_PHQA_screen)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 fg2 <- fg %>%
@@ -640,5 +744,43 @@ fg_scored %>%
   row_spec(0, bold = TRUE, background = "#e8e8e8")
 
 ```
+
+
+```{r}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+severity_table <- data.frame(
+  severity = c(
+    "No or Minimal depression",
+    "Mild depression",
+    "Moderate depression",
+    "Moderately severe depression",
+    "Severe depression"
+  ),
+  count = c(10, 66, 28, 13, 5)
+) %>%
+  mutate(
+    Percent = round((count / sum(count)) * 100, 1)
+  )
+
+severity_table %>%
+  rename(`Count (N = 122)` = count) %>%
+  kable(
+    caption = "Depression Severity Based on PHQ-9 Total Scores",
+    align = c("l", "r", "r"),
+    format = "html"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "left"
+  ) %>%
+  row_spec(0, bold = TRUE, background = "#e8e8e8")
+
+
+```
+
 
 
