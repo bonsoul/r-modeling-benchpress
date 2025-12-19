@@ -19,6 +19,62 @@ library(tidyverse)
 fg <- read_csv("D:/Downloads/depressed_PHQ_dataset_123rows.csv")
 ```
 
+
+```{r}
+library(readr)
+daf <- read_csv("D:/Downloads/PHQA_122rows_with_depression_levels.csv")
+View(daf)
+```
+
+```{r}
+glimpse(daf)
+
+```
+
+
+```{r}
+item_labels <- c(
+  PHQ_item_1  = "1. FEELING SAD, DOWN, HOPELESS, OR IRRITABLE",
+  PHQ_item_2  = "2. CRYING MORE THAN USUAL",
+  PHQ_item_3  = "3. LOSS OF INTEREST OR PLEASURE",
+  PHQ_item_4  = "4. SPENDING LESS TIME WITH FRIENDS",
+  PHQ_item_5  = "5. TROUBLE FALLING OR STAYING ASLEEP / SLEEPING TOO MUCH",
+  PHQ_item_6  = "6. POOR APPETITE, WEIGHT LOSS, OR OVEREATING",
+  PHQ_item_7  = "7. FEELING TIRED OR HAVING LITTLE ENERGY",
+  PHQ_item_8  = "8. FEELING BAD ABOUT YOURSELF / FEELING LIKE A FAILURE",
+  PHQ_item_9  = "9. TROUBLE CONCENTRATING",
+  PHQ_item_10 = "10. THOUGHTS OF SELF-HARM OR BEING BETTER OFF DEAD"
+)
+
+```
+
+```{r}
+phq_summary10 <- daf %>%
+  pivot_longer(
+    cols = starts_with("PHQ_item_"),
+    names_to = "ITEM",
+    values_to = "RESPONSE"
+  ) %>%
+  mutate(
+    ITEM = item_labels[ITEM]
+  ) %>%
+  group_by(ITEM, RESPONSE) %>%
+  summarise(
+    COUNT = n(),
+    PERCENT = round(100 * COUNT / nrow(daf), 1),
+    .groups = "drop"
+  ) %>%
+  arrange(ITEM, desc(COUNT))
+
+```
+
+```{r}
+phq_summary10
+
+```
+
+
+
 ```{r}
 glimpse(fg)
 ```
@@ -62,6 +118,12 @@ phq_summary <- fg %>%
 phq_summary
 
 ```
+
+```{r}
+install.packages("time", dependencies = TRUE)
+
+```
+
 
 ```{r}
 library(kableExtra)
@@ -124,6 +186,290 @@ phq_summary %>%
   row_spec(0, bold = TRUE, background = "#f0f0f0")   # style header
 
 ```
+
+
+
+```{r}
+library(dplyr)
+
+phq_map <- c(
+  "Not at all" = 0,
+  "Never" = 0,
+  "Several days" = 1,
+  "Once" = 1,
+  "Sometimes" = 1,
+  "More than half the days" = 2,
+  "Severally" = 2,
+  "Nearly every day" = 3
+)
+
+phq_items <- c(
+  "PHQ1_feeling_sad",
+  "PHQ2_crying_more",
+  "PHQ3_loss_interest",
+  "PHQ4_less_time_friends",
+  "PHQ5_sleep",
+  "PHQ6_appetite",
+  "PHQ7_tired",
+  "PHQ8_feeling_bad",
+  "PHQ9_concentration",
+  "PHQ10_self_harm"
+)
+
+fg <- fg %>%
+  mutate(across(all_of(phq_items), ~ phq_map[.x]))
+
+```
+
+```{r}
+fg2 <- fg %>%
+  mutate(
+    positive_symptoms = 
+      rowSums(across(all_of(phq_items[1:8]), ~ .x >= 2), na.rm = TRUE) +
+      ifelse(PHQ10_self_harm >= 1, 1, 0)
+  )
+
+```
+
+
+```{r}
+fg3 <- fg2 %>%
+  mutate(
+    core_symptom = ifelse(
+      PHQ1_feeling_sad >= 2 | PHQ2_crying_more >= 2, 1, 0
+    ),
+
+    MDD_PHQA = ifelse(
+      core_symptom == 1 &
+      positive_symptoms >= 5,
+      1, 0
+    )
+  )
+
+```
+
+
+
+```{r}
+fg3 <- fg2 %>%
+  mutate(
+    MDD_PHQA_screen = ifelse(
+      (PHQ1_feeling_sad >= 2 | PHQ2_crying_more >= 2) &
+      positive_symptoms >= 5,
+      1, 0
+    )
+  )
+
+```
+
+```{r}
+
+table(fg3$MDD_PHQA_screen)
+
+prop.table(table(fg3$MDD_PHQA_screen)) * 100
+
+
+```
+
+```{r}
+library(dplyr)
+
+# Compute total score from all 10 PHQ items
+fg4 <- fg3 %>%
+  mutate(
+    PHQ9_total = rowSums(across(PHQ1_feeling_sad:PHQ10_self_harm), na.rm = TRUE)
+  )
+
+```
+
+
+
+```{r}
+library(dplyr)
+
+fg5 <- fg4 %>%
+  mutate(
+    depression_severity = case_when(
+      PHQ9_total >= 0  & PHQ9_total <= 4  ~ "No or Minimal depression",
+      PHQ9_total >= 5  & PHQ9_total <= 9  ~ "Mild depression",
+      PHQ9_total >= 10 & PHQ9_total <= 14 ~ "Moderate depression",
+      PHQ9_total >= 15 & PHQ9_total <= 19 ~ "Moderately severe depression",
+      PHQ9_total >= 20 & PHQ9_total <= 27 ~ "Severe depression",
+      TRUE ~ NA_character_
+    )
+  )
+
+```
+
+```{r}
+severity_summary <- fg5 %>%
+  group_by(depression_severity) %>%
+  summarise(
+    Count = n(),
+    Percent = round(100 * n() / nrow(fg3), 1)
+  ) %>%
+  arrange(match(depression_severity,
+                c("No or Minimal depression",
+                  "Mild depression",
+                  "Moderate depression",
+                  "Moderately severe depression",
+                  "Severe depression")))
+
+```
+
+```{r}
+library(knitr)
+library(kableExtra)
+
+severity_summary %>%
+  kable(
+    format = "html",
+    caption = "Depression Severity Based on PHQ-9 Total Scores (All 10 Items)",
+    align = c("l", "r", "r"),
+    digits = 1
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    position = "left"
+  ) %>%
+  row_spec(0, bold = TRUE, background = "#f0f0f0")
+
+```
+
+
+
+
+
+```{r}
+library(knitr)
+library(kableExtra)
+
+# Create summary table
+mdd_summary <- data.frame(
+  Status = c("Not Probable Major Depressive Disorder", "Probable Major Depressive Disorder"),
+  Count = c(97, 26),
+  Percent = round(c(78.86, 21.14), 1)
+)
+
+# Print pretty table
+mdd_summary %>%
+  kable(
+    format = "html", # use "latex" if knitting to PDF
+    caption = "Screening for Probable Major Depressive Disorder (PHQ-9 Teens)",
+    align = c("l", "r", "r"),
+    digits = 1
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+    full_width = FALSE,
+    position = "left"
+  ) %>%
+  row_spec(0, bold = TRUE, background = "#f0f0f0")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+item1_var <- "PHQ1_feeling_sad"
+
+
+```
+
+```{r}
+fg1 <- fg %>%
+  mutate(
+    depressed_general = ifelse(
+      .data[[item1_var]] != "Not at all" & !is.na(.data[[item1_var]]),
+      1, 0
+    )
+  )
+
+```
+
+```{r}
+depression_summary <- fg %>%
+  summarise(
+    N = n(),
+    Depressed_n = sum(depressed_general, na.rm = TRUE),
+    Depressed_percent = round(100 * Depressed_n / N, 1)
+  )
+
+depression_summary
+
+```
+
+```{r}
+depression_summary %>%
+  kable(
+    col.names = c("Total (N)", "Depressed (n)", "Depressed (%)"),
+    caption = "General Prevalence of Depressive Symptoms (PHQ-A Item 1)"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "condensed"),
+    full_width = FALSE
+  )
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
