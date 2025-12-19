@@ -86,6 +86,12 @@ data <- merged_df
 ```
 
 ```{r}
+write.csv(df, "my_data.csv", row.names = FALSE)
+
+```
+
+
+```{r}
 df10 <- df    #copying the dataframe
 ```
 
