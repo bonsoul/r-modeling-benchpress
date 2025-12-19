@@ -1,0 +1,44 @@
+---
+title: "xgboost for childcare costs"
+author: "Bonsoul"
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set( cache = TRUE, cache.lazy = FALSE, warning = FALSE, message = FALSE ,  echo = TRUE , dpi = 180, fig.width = 8, fig.height = 5)
+```
+
+```{r, set up}
+
+library(tidytuesdayR)
+library(silgelib)
+library(ggplot2)
+theme_set(theme_plex())
+update_geom_defaults("rect", list(fill = "midnightblue", alpha = 0.8))
+update_geom_defaults("line", list(color = "midnightblue", alpha = 0.8))
+
+
+```
+
+```{r}
+
+library(tidyverse)
+
+tuesdata <- tidytuesdayR::tt_load('2023-05-09')
+tuesdata <- tidytuesdayR::tt_load(2023, week = 19)
+
+childcare_costs <- tuesdata$childcare_costs
+counties <- tuesdata$counties
+
+```
+
+```{r}
+childcare_costs |>
+  ggplot(aes(study_year ,mcsa, group = study_year, fill = study_year)) +
+  geom_boxplot(alpha = 0.8, show.legend = FALSE) +
+  scale_fil
+
+
+```
+
+
