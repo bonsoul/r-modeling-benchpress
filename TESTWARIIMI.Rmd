@@ -783,4 +783,34 @@ severity_table %>%
 ```
 
 
+```{r}
+library(dplyr)
+library(knitr)
+library(kableExtra)
+
+depressed_table <- data.frame(
+  Depressed = c("Yes", "No"),
+  count = c(46, 76)
+) %>%
+  mutate(
+    Percent = round((count / sum(count)) * 100, 1)
+  )
+
+depressed_table %>%
+  rename(`Count (N = 122)` = count) %>%
+  kable(
+    caption = "Depression Status Distribution (N = 122)",
+    align = c("l", "r", "r"),
+    format = "html"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "left"
+  ) %>%
+  row_spec(0, bold = TRUE, background = "#e8e8e8")
+
+```
+
+
 
