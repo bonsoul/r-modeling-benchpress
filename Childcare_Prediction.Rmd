@@ -174,3 +174,119 @@ best_xgb
 
 ```
 
+```{r}
+show_best(xgb_rs, metric = "rmse", n = 5)
+
+```
+
+```{r}
+final_xgb_wf <- finalize_workflow(
+  xgb_wf,
+  best_xgb
+)
+
+```
+
+```{r}
+final_xgb_fit <- fit(
+  final_xgb_wf,
+  data = childcare_train
+)
+
+```
+
+```{r}
+library(vip)
+
+final_xgb_fit %>%
+  extract_fit_parsnip() %>%
+  vip(num_features = 20)
+
+```
+
+```{r}
+library(parsnip)
+library(workflows)
+
+lm_spec <- linear_reg() %>%
+  set_engine("lm")
+
+lm_wf <- workflow() %>%
+  add_recipe(xgb_rec) %>%
+  add_model(lm_spec)
+
+```
+
+```{r}
+library(rsample)
+
+set.seed(123)
+cv_folds <- vfold_cv(childcare_train, v = 5)
+
+xgb_cv <- fit_resamples(
+  final_xgb_wf,
+  resamples = cv_folds,
+  metrics = metrics
+)
+
+lm_cv <- fit_resamples(
+  lm_wf,
+  resamples = cv_folds,
+  metrics = metrics
+)
+
+```
+
+
+```{r}
+collect_metrics(xgb_cv)
+collect_metrics(lm_cv)
+
+
+```
+
+
+```{r}
+bind_rows(
+  collect_metrics(xgb_cv) %>% mutate(model = "XGBoost"),
+  collect_metrics(lm_cv) %>% mutate(model = "Linear Regression")
+) %>%
+  filter(.metric == "rmse") %>%
+  ggplot(aes(model, mean)) +
+  geom_col() +
+  labs(y = "RMSE", x = NULL)
+
+```
+
+```{r}
+library(pdp)
+
+xgb_fit <- final_xgb_fit %>%
+  extract_fit_parsnip()
+
+```
+
+```{r}
+library(vip)
+
+final_xgb_fit %>%
+  extract_fit_parsnip() %>%
+  vip::partial_dependence(
+    pred.var = "mhi_2018",
+    train = bake(prep(xgb_rec), new_data = childcare_train)
+  )
+
+```
+
+```{r}
+final_xgb_fit %>%
+  extract_fit_parsnip() %>%
+  vip::partial_dependence(
+    pred.var = c("mhi_2018", "flfpr_20to64"),
+    train = bake(prep(xgb_rec), new_data = childcare_train),
+    plot = TRUE,
+    contour = TRUE
+  )
+
+```
+
