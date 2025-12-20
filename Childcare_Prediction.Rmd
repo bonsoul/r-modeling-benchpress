@@ -141,9 +141,21 @@ metrics <- metric_set(rmse,rsq)
 ```
 
 ```{r}
+library(tune)
+library(dials)
 
-params <- parameters(xgb_spec) %>%
-  finalize(childcare_train)
+params <- extract_parameter_set_dials(xgb_spec)
+
+```
+
+
+```{r}
+params <- finalize(params, childcare_train)
+
+```
+
+
+```{r}
 
 xgb_rs <- tune_grid(
   xgb_wf,
@@ -152,6 +164,13 @@ xgb_rs <- tune_grid(
   grid = grid_latin_hypercube(params, size = 20)
 )
 
+```
+
+```{r}
+library(tune)
+
+best_xgb <- select_best(xgb_rs, metric = "rmse")
+best_xgb
 
 ```
 
