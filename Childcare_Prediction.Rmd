@@ -125,61 +125,33 @@ xgb_spec <- boost_tree(
 
 
 ```{r}
-xgb_spec <- 
-  boost_tree(
-    trees = 500,
-    min_n = time(),
-    mtry = tune(),
-    stop_iter = tune(),
-    learn_rate = 0.01
-  ) |>
-  set_engine("xgboost", validation = 0.2) |>
-  set_mode("regression")
+library(workflows)
 
-
-xgb_wf <- workflow(mcsa ~ ., xgb_spec)
+xgb_wf <- workflow() %>% 
+  add_recipe(xgb_rec) %>%
+  add_model(xgb_spec)
 
 ```
 
+```{r, metrics}
+library(yardstick)
 
-```{r}
-class(recipe)
+metrics <- metric_set(rmse,rsq)
 
 ```
 
 ```{r}
-colnames(training_data)
 
-```
+params <- parameters(xgb_spec) %>%
+  finalize(childcare_train)
 
+xgb_rs <- tune_grid(
+  xgb_wf,
+  resamples = validation_split(childcare_train, prop = 0.75),
+  metrics = metrics,
+  grid = grid_latin_hypercube(params, size = 20)
+)
 
-
-```{r}
-library(recipes)
-
-xgb_rec <- recipe(outcome ~ ., data = training_data) %>%
-  step_dummy(all_nominal_predictors()) %>%
-  step_zv(all_predictors())
-
-```
-
-
-```{r}
-prep(recipe, training = training_data) %>%
-  juice()
-
-```
-
-
-```{r}
-doParallel::registerDoParallel()
-set.seed(234)
-xgb_rs <- tune_grid(xgb_wf, childcare_set, grid = 15)
-xgb_rs
-```
-
-
-```{r}
 
 ```
 
