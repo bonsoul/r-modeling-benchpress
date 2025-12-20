@@ -93,6 +93,38 @@ childcare_set
 ```
 
 ```{r}
+library(recipes)
+
+xgb_rec <- recipe(mcsa ~ ., data = childcare_train)
+
+```
+
+
+```{r}
+prep(xgb_rec, training = childcare_train) %>%
+  juice()
+
+```
+
+
+```{r}
+library(parsnip)
+
+xgb_spec <- boost_tree(
+  trees = tune(),
+  tree_depth  = tune(),
+  learn_rate = tune(),
+  loss_reduction = tune(),
+  sample_size = tune(),
+  mtry = tune()
+) %>%
+  set_engine("xgboost") %>%
+  set_mode("regression")
+
+```
+
+
+```{r}
 xgb_spec <- 
   boost_tree(
     trees = 500,
@@ -109,11 +141,32 @@ xgb_wf <- workflow(mcsa ~ ., xgb_spec)
 
 ```
 
-```{r}
-prep_rec <- prep(xgb_wf$pre$recipe)
-baked <- bake(prep_rec, new_data = NULL)
 
-dim(baked)
+```{r}
+class(recipe)
+
+```
+
+```{r}
+colnames(training_data)
+
+```
+
+
+
+```{r}
+library(recipes)
+
+xgb_rec <- recipe(outcome ~ ., data = training_data) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_zv(all_predictors())
+
+```
+
+
+```{r}
+prep(recipe, training = training_data) %>%
+  juice()
 
 ```
 
