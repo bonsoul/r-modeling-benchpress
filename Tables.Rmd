@@ -110,5 +110,132 @@ trial_paired %>%
   )
 ```
 
+```{r}
+trial %>%
+  tbl_summary(
+    by = trt,
+    statistic = list(
+      age ~ "{mean} ({sd})",
+      marker ~ "{mean} ({min}, {p25}, {p75}, {max})",
+      stage ~ "{n} / {N} ({p}%)"
+    )
+  ) %>%
+  add_p(
+    test = list(
+      age ~ "t.test",
+      marker ~ "wilcox.test",
+      stage ~ "fisher.test"
+    )
+  ) %>%
+  separate_p_footnotes()
+
+```
+
+```{r}
+str(trial$age)
+str(trial$marker)
+
+```
+
+
+```{r}
+trial %>%
+  tbl_summary(
+    by = trt,
+    statistic = list(
+      age    ~ "{mean} ({sd})",
+      marker ~ "{median} ({p25}, {p75})"
+    ),
+    label = grade ~ "New None ~ Tumor Grade",
+    digits = all_continuous() ~ 1,
+    #missing = "no",
+    missing_text = "Missing values",
+    type = list(
+      response ~ "categorical",
+      death ~ "categorical"
+    ),
+    sort = everything() ~ "frequency",
+    percent = "cell",
+    include = -ttdeath
+  ) %>%
+  
+  add_p(pvalue_fun = ~ style_pvalue(.x, digits = 3))
+
+
+```
+
+#summarise regression models
+
+```{r}
+install.packages("broom")
+```
+
+
+```{r}
+
+library(arm)
+library(gtsummary)
+library(broom)
+
+bm <- arm::bayesglm(
+  response ~ trt + age + grade,
+  data = trial,
+  family = binomial
+)
+
+bm_table <- tbl_regression(
+  bm,
+  exponentiate = TRUE,
+  tidy_fun = broom::tidy
+)
+
+bm_table
+
+
+
+```
+
+```{r}
+library(survival)
+
+cm <- coxph(Surv(ttdeath, death) ~ trt + age + grade,
+            data = trial)
+
+cm_table <- tbl_regression(cm, exponentiate =  TRUE)
+
+
+cm_table
+```
+
+```{r, univariate models}
+
+uvlm_table <- trial %>%
+  select(response, trt, age, grade) %>%
+  tbl_uvregression(
+    method = glm,
+    y = response,
+    method.args = list(family = binomial),
+    exponentiate = TRUE
+  )
+
+uvlm_table
+
+```
+
+```{r}
+uvcm_table <- tbl_uvregression(
+  trial %>%
+    
+    select(ttdeath, death, trt, age, grade),
+  method = coxph,
+  y = Surv(ttdeath, death),
+  exponentiate = TRUE
+)
+
+
+uvcm_table
+```
+
+
 
 
