@@ -67,6 +67,48 @@ trial %>%
 ```
 
 ```{r}
+trial %>%
+  tbl_summary(
+    by = trt,
+    statistic = list(
+      age ~ "{mean} ({sd})",
+      marker ~ "{mean} ({min}, {p25}, {p75}, {max})",
+      stage ~ "{n} / {N} ({p}%)"
+    )
+  ) %>%
+  add_p(
+    test = list(
+      age ~ "t.test",
+      marker ~ "wilcox.test",
+      stage ~ "fisher.test"
+    )
+  ) %>%
+  separate_p_footnotes()
 
 ```
+
+```{r}
+trial_paired <- 
+  trial %>%
+  select(trt, marker, response) %>%
+  group_by(trt) %>%
+  mutate(id = row_number()) %>%
+  ungroup()
+```
+
+```{r}
+trial_paired %>%
+  filter(complete.cases(.)) %>%
+  group_by(id) %>%
+  filter(n() ==2) %>%
+  ungroup() %>%
+  tbl_summary(by = trt, include = -id) %>%
+  add_p(test = list(
+    marker ~ "paired.t.test",
+    response ~ "mcnemar.test"),
+    group = id
+  )
+```
+
+
 
