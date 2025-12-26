@@ -236,6 +236,132 @@ uvcm_table <- tbl_uvregression(
 uvcm_table
 ```
 
+```{r}
+fancy_table <- 
+  tbl_merge(
+    tbls = list(bm_table, cm_table),
+    tab_spanner = c("Tumor Response", "Time to Death")
+  )
+  
+fancy_table
 
+```
+
+```{r}
+uni_multi <- tbl_merge(
+  tbls = list(
+    tbl_summary(d), uvlm_table, bm_table
+  ),
+  tab_spanner = c(
+    "**Describe**",
+    "**Univariate Models**",
+    "**Multivariate Model**"
+  )
+)
+
+uni_multi
+
+```
+
+
+```{r}
+
+glm_table <-
+  glm(
+    response ~ trt + age + marker + ttdeath + grade,
+    data = trial,
+    family = binomial
+  ) %>%
+  tbl_regression(
+    exponentiate = TRUE
+  ) %>%
+  # add helpers
+  add_n(location = "level") %>%
+  add_nevent(location = "level") %>%
+  add_global_p() %>%
+  add_q() %>%
+  add_significance_stars(
+    hide_p = FALSE,
+    hide_se = TRUE,
+    hide_ci = FALSE
+  ) %>%
+  # modify helpers
+  modify_header(label = "**Predictor**") %>%
+  modify_caption("Table 1. Cool looking table") %>%
+  modify_footnote(
+    ci = "CI = Confidence Interval",
+    abbreviation = TRUE
+  ) %>%
+  sort_p() %>%
+  # aesthetics helpers
+  bold_p(t = 0.10, q = TRUE) %>%
+  bold_labels() %>%
+  italicize_levels()
+
+glm_table
+
+```
+
+```{r}
+trial %>%
+  tbl_cross(
+    row = stage,
+    col = trt,
+    percent = "cell", 
+    missing = "ifany",
+  ) %>%
+  add_p()
+```
+
+```{r}
+data(api, package = "survey")
+
+svy_apiclus1 <- 
+  survey::svydesign(
+    id = ~dnum,
+    weights = ~pw,
+    data = apiclus1,
+    fpc = ~fpc
+  )
+
+svy_apiclus1 %>%
+  tbl_svysummary(
+    by = both,
+    include = c(api00, api99, both),
+    label = list(api00 ~ "API in 2000",
+                 api99 ~ "API in 1999")
+    
+    
+  )%>%
+  add_p() %>%
+  add_overall()%>%
+  
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Met Both Targets")
+
+
+```
+
+
+```{r}
+library(ISLR)
+
+
+ml <- lm(mpg ~ origin * horsepower, data = Auto)
+
+tbl_regression(ml) %>%
+  modify_caption("Compact Theme")
+
+reset_gtsummary_theme()
+```
+
+
+```{r}
+library(flextable)
+
+fancy_table %>%
+  
+  as_flex_table() %>%
+  save_as_docx(path = "fancy_table.docx")
+```
 
 
