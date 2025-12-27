@@ -52,11 +52,46 @@ dfs_merged <- bind_rows(df1,df2)
 ```
 
 
-```{r}
-library(skimr)
 
-skim(df1)
+```{r}
+# Select the variables of interest
+adherence_vars <- c(
+  "do_you_ever_miss_the_medicines_you_are_supposed_to_take",
+  "do_you_ever_refuse_to_take_the_medicines_you_are_supposed_to_take",
+  "do_you_ever_not_take_the_medicines_because_you_do_not_want_to_take_them_in_front_of_other_people",
+  "do_you_ever_have_problems_taking_the_medicines_because_you_do_not_know_why_you_are_taking_them",
+  "do_you_ever_have_problems_taking_the_medicines_on_time_or_taking_them_every_day"
+)
+
+# Loop through variables and print frequency tables
+for (var in adherence_vars) {
+  cat("\nVariable:", var, "\n")
+  freq <- table(dfs_merged[[var]])
+  percent <- round(prop.table(freq) * 100, 1)
+  print(cbind(Frequency = freq, Percentage = percent))
+}
+
 ```
+
+```{r}
+tbl <- dfs_merged %>%
+  select(all_of(c("grade", "trt", adherence_vars))) %>%   # Keep only relevant columns
+  tbl_strata(
+    strata = grade,                                      # Stratify by grade
+    .tbl_fun = ~ .x %>%
+      tbl_summary(
+        by = trt,                                       # Compare groups within each grade
+        missing = "no",                                  # Exclude missing values
+        statistic = list(
+          all_categorical() ~ "{n} ({p}%)"             # Show n (%) for categorical vars
+        )
+      )
+  )
+
+```
+
+
+
 
 ```{r}
 library(dplyr)
