@@ -23,7 +23,7 @@ fg <- read_csv("D:/Downloads/depressed_PHQ_dataset_123rows.csv")
 ```{r}
 library(readr)
 daf <- read_csv("D:/Downloads/PHQA_122rows_with_depression_levels.csv")
-View(daf)
+
 ```
 
 ```{r}
