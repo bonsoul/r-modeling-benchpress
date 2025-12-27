@@ -37,10 +37,20 @@ dim(df1)
 ```
 
 
+
 ```{r}
-colnames(df1)
+library(janitor)
+
+df1 <- clean_names(df1)
+df2 <- clean_names(df2)
 
 ```
+
+
+```{r}
+dfs_merged <- bind_rows(df1,df2)
+```
+
 
 ```{r}
 library(skimr)
