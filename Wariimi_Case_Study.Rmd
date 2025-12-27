@@ -74,23 +74,83 @@ for (var in adherence_vars) {
 ```
 
 ```{r}
+library(dplyr)
+library(gtsummary)
+
 tbl <- dfs_merged %>%
-  select(all_of(c("grade", "trt", adherence_vars))) %>%   # Keep only relevant columns
-  tbl_strata(
-    strata = grade,                                      # Stratify by grade
-    .tbl_fun = ~ .x %>%
-      tbl_summary(
-        by = trt,                                       # Compare groups within each grade
-        missing = "no",                                  # Exclude missing values
-        statistic = list(
-          all_categorical() ~ "{n} ({p}%)"             # Show n (%) for categorical vars
-        )
-      )
+  select(all_of(adherence_vars)) %>%
+  tbl_summary(
+    missing = "no",
+    statistic = all_categorical() ~ "{n} ({p}%)"
   )
+
+tbl
+
+
+```
+
+```{r}
+library(dplyr)
+library(gtsummary)
+library(flextable)
+library(officer)
+
+```
+
+```{r}
+tbl_word <- tbl %>% as_flex_table()
+
+doc <- read_docx() %>%
+  body_add_par("Adherence to ART Medication", style = "heading 1") %>%
+  body_add_flextable(tbl_word)
+
+print(doc, target = "Adherence_Table.docx")
+
+```
+
+```{r}
+dfs_merged[adherence_vars] <- lapply(dfs_merged[adherence_vars], function(x) {
+  as.numeric(recode(as.character(x),
+         "d) Never" = "0",
+         "a) Never" = "0",
+         "a) Once" = "1",
+         "b) Sometimes" = "2",
+         "c) Severally" = "3",
+         .default = NA_character_))
+})
 
 ```
 
 
+```{r}
+dfs_merged$non_adherence_score <- rowSums(
+  dfs_merged[adherence_vars],
+  na.rm = TRUE
+)
+
+```
+
+```{r}
+library(tidyr)
+
+dfs_merged %>%
+  select(all_of(adherence_vars)) %>%
+  pivot_longer(cols = everything(),
+               names_to = "Item",
+               values_to = "Response") %>%
+  group_by(Item, Response) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(Item) %>%
+  mutate(Percentage = round(n / sum(n) * 100, 1))
+
+```
+
+
+```{r}
+summary(dfs_merged$non_adherence_score)
+hist(dfs_merged$non_adherence_score)
+
+```
 
 
 ```{r}
