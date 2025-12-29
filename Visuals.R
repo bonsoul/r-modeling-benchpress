@@ -66,3 +66,72 @@ data(pisaitems)
 
 head(pisaitems)
 
+
+d <- pisaitems %>%
+  dplyr::select(starts_with("ST25Q"))
+
+view_df(d, show.frq = T, show.prc = T)
+
+
+plot_likert(d)
+
+
+m <- lm(wage ~ education, data = Wage)
+
+plot_model(m, type = "pred")
+
+
+summary(m)
+
+
+plot_model(m, show.values = TRUE, width = 0.1) +
+  ylab("Increase in Salary as Compared to no education")
+
+
+tab_model(m,
+          show.reflvl = T,
+          show.intercept = F,
+          p.style = "numeric_stars")
+
+
+Wage$wage_s <- scale(Wage$wage)
+
+m.lmm <- lmer(age ~ wage_s * jobclass * health + (1 | education),
+              data = Wage)
+
+
+plot_model(m.lmm, type = "int", bias_correction = TRUE)
+
+
+plot_model(m.nb, type = "pred",
+           terms = c("health", "jobclass", "wage[50, 150, 300]"))
+
+
+
+
+plot_model(
+  m.nb,
+  type = "re",
+  width = .5,
+  show.values = TRUE
+) + ylim(0.9, 1.1)
+
+
+#fit the models
+
+fit1 <- lm(age ~ education + jobclass + health_ins, data  =Wage)
+fit2 <- lm(age ~ education + jobclass + health_ins, data = Wage)
+
+#plot multiple models
+plot_models(fit1,fit2,show.values = T,grid = TRUE)
+
+
+plot_models(fit1, fit2, p.shape  = TRUE)
+
+
+tab_model(
+  fit1, fit2,
+  collapse.ci = TRUE,
+  p.style = "numeric_stars"
+)
+
