@@ -77,17 +77,48 @@ for (var in adherence_vars) {
 library(dplyr)
 library(gtsummary)
 
-tbl <- dfs_merged %>%
+library(dplyr)
+library(gtsummary)
+library(sjmisc)
+
+# Convert adherence variables to ordered factors with descriptive labels
+d <- dfs_merged %>%
   select(all_of(adherence_vars)) %>%
+  mutate(across(
+    everything(),
+    ~ factor(.x,
+             levels = c(0, 1, 2, 3),
+             labels = c("Never", "Rarely", "Sometimes", "Often"),
+             ordered = TRUE)
+  ))
+
+# Create summary table with counts and percentages
+tbl <- d %>%
   tbl_summary(
     missing = "no",
     statistic = all_categorical() ~ "{n} ({p}%)"
   )
 
+# Print the table
 tbl
 
 
 ```
+
+
+```{r}
+# Select adherence variables and convert to ordered factors
+d <- dfs_merged %>%
+  select(all_of(adherence_vars)) %>%
+  sjmisc::to_factor(ordered = TRUE)
+
+# View frequencies and percentages
+view_df(d, show.frq = TRUE, show.prc = TRUE)
+
+# Plot Likert-style stacked bars
+plot_likert(d, show.prc = TRUE)
+```
+
 
 ```{r}
 library(dplyr)
@@ -253,10 +284,7 @@ tabyl(data1_unique, currently_live1) %>% adorn_pct_formatting()
 ```
 
 ```{r}
-library(dplyr)
-library(janitor)
-library(tidyr)
-library(stringr)
+
 
 # Create a unique participant ID if not already present
 data1 <- data %>%
