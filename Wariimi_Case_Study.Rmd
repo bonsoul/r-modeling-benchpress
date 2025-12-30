@@ -107,6 +107,73 @@ tbl
 
 
 ```{r}
+
+dfs_merged <- dfs_merged %>%
+  mutate(
+    adherence_binary = case_when(
+      rowSums(across(all_of(adherence_vars),
+                     ~ .x %in% c("Sometimes", "Often")),
+              na.rm = TRUE) == 0 ~ "Adherent",
+      TRUE ~ "Non-adherent"
+    )
+  )
+
+```
+
+
+```{r}
+library(gtsummary)
+
+dfs_merged %>%
+  select(adherence_binary) %>%
+  tbl_summary(
+    missing = "no",
+    statistic = all_categorical() ~ "{n} ({p}%)"
+  )
+
+```
+
+
+
+
+
+```{r}
+dfs_merged <- dfs_merged %>%
+  mutate(across(
+    all_of(adherence_vars),
+    ~ factor(.x,
+             levels = c("Never", "Rarely", "Sometimes", "Often"),
+             ordered = TRUE)
+  )) %>%
+  mutate(
+    adherence_binary1 = case_when(
+      rowSums(across(all_of(adherence_vars),
+                     ~ .x %in% c("Sometimes", "Often")),
+              na.rm = TRUE) == 0 ~ "Adherent",
+      TRUE ~ "Non-adherent"
+    )
+  )
+
+```
+
+
+```{r}
+table(dfs_merged$adherence_binary1)
+prop.table(table(dfs_merged$adherence_binary1)) * 100
+
+```
+
+
+
+
+```{r}
+library(dplyr)
+library(sjPlot)
+
+```
+
+
+```{r}
 # Select adherence variables and convert to ordered factors
 d <- dfs_merged %>%
   select(all_of(adherence_vars)) %>%
@@ -182,6 +249,30 @@ summary(dfs_merged$non_adherence_score)
 hist(dfs_merged$non_adherence_score)
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
