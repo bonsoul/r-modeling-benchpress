@@ -73,63 +73,42 @@ for (var in adherence_vars) {
 
 ```
 
+
 ```{r}
-library(dplyr)
-library(gtsummary)
-
-library(dplyr)
-library(gtsummary)
-library(sjmisc)
-
-# Convert adherence variables to ordered factors with descriptive labels
 d <- dfs_merged %>%
   select(all_of(adherence_vars)) %>%
   mutate(across(
     everything(),
-    ~ factor(.x,
-             levels = c(0, 1, 2, 3),
-             labels = c("Never", "Rarely", "Sometimes", "Often"),
-             ordered = TRUE)
+    ~ gsub("^[a-d]\\)\\s*", "", .x) %>%        # remove "a) ", "b) ", etc.
+      factor(levels = c("Never", "Once", "Sometimes", "Severally"), ordered = TRUE)
   ))
 
-# Create summary table with counts and percentages
-tbl <- d %>%
-  tbl_summary(
-    missing = "no",
-    statistic = all_categorical() ~ "{n} ({p}%)"
-  )
+```
 
-# Print the table
-tbl
-
+```{r}
+lapply(dfs_merged[adherence_vars], unique)
 
 ```
 
-
 ```{r}
+labels_list <- list(
+  do_you_ever_miss_the_medicines_you_are_supposed_to_take = "Miss medicines",
+  do_you_ever_refuse_to_take_the_medicines_you_are_supposed_to_take = "Refuse medicines",
+  do_you_ever_not_take_the_medicines_because_you_do_not_want_to_take_them_in_front_of_other_people = "Avoid taking meds in front of others",
+  do_you_ever_have_problems_taking_the_medicines_because_you_do_not_know_why_you_are_taking_them = "Problems understanding why taking meds",
+  do_you_ever_have_problems_taking_the_medicines_on_time_or_taking_them_every_day = "Problems taking meds on time/daily"
+)
 
-dfs_merged <- dfs_merged %>%
-  mutate(
-    adherence_binary = case_when(
-      rowSums(across(all_of(adherence_vars),
-                     ~ .x %in% c("Sometimes", "Often")),
-              na.rm = TRUE) == 0 ~ "Adherent",
-      TRUE ~ "Non-adherent"
-    )
-  )
-
-```
-
-
-```{r}
 library(gtsummary)
 
-dfs_merged %>%
-  select(adherence_binary) %>%
+tbl <- d %>%
   tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
     missing = "no",
-    statistic = all_categorical() ~ "{n} ({p}%)"
+    label = labels_list
   )
+
+tbl
 
 ```
 
@@ -138,30 +117,147 @@ dfs_merged %>%
 
 
 ```{r}
-dfs_merged <- dfs_merged %>%
-  mutate(across(
-    all_of(adherence_vars),
-    ~ factor(.x,
-             levels = c("Never", "Rarely", "Sometimes", "Often"),
-             ordered = TRUE)
-  )) %>%
+library(dplyr)
+library(tidyr)
+library(gt)
+
+library(dplyr)
+library(gt)
+
+# Use a named vector for recoding
+labels_vector <- c(
+  "do_you_ever_miss_the_medicines_you_are_supposed_to_take" = "Miss medicines",
+  "do_you_ever_refuse_to_take_the_medicines_you_are_supposed_to_take" = "Refuse medicines",
+  "do_you_ever_not_take_the_medicines_because_you_do_not_want_to_take_them_in_front_of_other_people" = "Avoid taking meds in front of others",
+  "do_you_ever_have_problems_taking_the_medicines_because_you_do_not_know_why_you_are_taking_them" = "Problems understanding why taking meds",
+  "do_you_ever_have_problems_taking_the_medicines_on_time_or_taking_them_every_day" = "Problems taking meds on time/daily"
+)
+
+# Recode using the named vector
+summary_df <- summary_df %>%
   mutate(
-    adherence_binary1 = case_when(
-      rowSums(across(all_of(adherence_vars),
-                     ~ .x %in% c("Sometimes", "Often")),
-              na.rm = TRUE) == 0 ~ "Adherent",
-      TRUE ~ "Non-adherent"
-    )
+    Variable = labels_vector[Variable]  # safe recoding
   )
 
+# View nicely in RStudio Viewer
+summary_df %>%
+  gt() %>%
+  tab_header(title = "Adherence Variable Frequencies")
+
+
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
-table(dfs_merged$adherence_binary1)
-prop.table(table(dfs_merged$adherence_binary1)) * 100
+library(dplyr)
+library(gt)
+
+all_tables <- lapply(adherence_vars, function(var) {
+  freq <- table(dfs_merged[[var]])
+  percent <- round(prop.table(freq) * 100, 1)
+  df <- data.frame(
+    Variable = var,
+    Response = names(freq),
+    Frequency = as.numeric(freq),
+    Percentage = percent
+  )
+})
+
+# Combine all
+all_tables_df <- do.call(rbind, all_tables)
+
+# Show in Viewer
+all_tables_df %>%
+  gt() %>%
+  tab_header(title = "Adherence Variable Frequencies")
 
 ```
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+# Initialize an empty list to store results
+summary_list <- list()
+
+# Loop through adherence variables
+for (var in adherence_vars) {
+  df <- dfs_merged %>%
+    count(!!sym(var)) %>%                        # count frequencies
+    mutate(
+      Percentage = round(n / sum(n) * 100, 1),
+      Variable = var
+    ) %>%
+    rename(Level = !!sym(var)) %>%
+    select(Variable, Level, n, Percentage)
+  
+  summary_list[[var]] <- df
+}
+
+# Combine all variables
+summary_df <- bind_rows(summary_list)
+
+# Optional: print in readable format
+for (var in unique(summary_df$Variable)) {
+  cat("\n", var, "\n")
+  tmp <- summary_df %>% filter(Variable == var) %>% select(-Variable)
+  print(tmp)
+}
+
+```
+
+
+
+
+```{r}
+library(dplyr)
+library(gt)
+
+# Combine all adherence variables into one table
+all_tables <- lapply(adherence_vars, function(var) {
+  dfs_merged %>%
+    count(!!sym(var)) %>%
+    mutate(
+      Percentage = round(n / sum(n) * 100, 1),
+      Variable = var
+    ) %>%
+    rename(Level = !!sym(var)) %>%
+    select(Variable, Level, n, Percentage)
+})
+
+summary_df <- bind_rows(all_tables)
+
+# View nicely in RStudio Viewer
+summary_df %>%
+  gt() %>%
+  tab_header(title = "Adherence Variable Frequencies")
+
+```
+
+
+
+
+
 
 
 
