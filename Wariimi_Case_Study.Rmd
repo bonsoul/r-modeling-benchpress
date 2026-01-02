@@ -262,6 +262,16 @@ summary_df %>%
 
 
 
+
+
+
+
+
+
+
+
+
+
 ```{r}
 library(dplyr)
 library(sjPlot)
