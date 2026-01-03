@@ -113,6 +113,56 @@ tbl
 ```
 
 
+```{r}
+dfs_merged <- dfs_merged %>%
+  mutate(
+    adherence_binary = case_when(
+      rowSums(
+        across(
+          all_of(adherence_vars),
+          ~ .x %in% c("Once", "Sometimes", "Severally")
+        ),
+        na.rm = TRUE
+      ) == 0 ~ "Adherent",
+      TRUE ~ "Non-adherent"
+    )
+  )
+
+
+```
+
+
+```{r}
+dfs_merged$adherence_binary <- factor(
+  dfs_merged$adherence_binary,
+  levels = c("Adherent", "Non-adherent"),
+  labels = c("Good adherence", "Poor adherence")
+)
+
+```
+
+```{r}
+library(gtsummary)
+library(dplyr)
+
+dfs_merged %>%
+  select(adherence_binary) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "no",
+    label = list(
+      adherence_binary ~ "Medication adherence"
+    )
+  )
+
+
+```
+
+
+```{r}
+table(dfs_merged$adherence_binary)
+
+```
 
 
 
