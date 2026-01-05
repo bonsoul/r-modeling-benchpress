@@ -13,6 +13,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 df1 <- read_csv("D:/Downloads/depressed_PHQ_dataset.edit.csv")
+
+df2 <- read_csv("D:/Downloads/PHQA_with_depression_levels.edit.csv")
+
 ```
 
 ```{r}
@@ -36,7 +39,7 @@ library(gtsummary)
 phq_levels <- c("Not at all", "Several days", "More than half the days", "Nearly every day")
 
 # Recode all PHQ columns
-phq_data_recoded <- df1 %>%
+phq_data_recoded <- df2 %>%
   mutate(across(starts_with("PHQ"), 
                 ~ factor(.x, levels = phq_levels, ordered = TRUE)))
 
@@ -55,6 +58,65 @@ descriptive_table
 
 
 ```{r}
-colnames(df1)
+# Load dplyr
+library(dplyr)
+
+# Recode PHQ responses to numeric scores
+df <- df2 %>%
+  mutate(across(
+    PHQ_item_1:PHQ_item_9,
+    ~ case_when(
+      . == "Not at all" ~ 0,
+      . == "Several days" ~ 1,
+      . == "More than half the days" ~ 2,
+      . == "Nearly every day" ~ 3,
+      TRUE ~ NA_real_
+    )
+  ))
+
 ```
+
+```{r}
+df10 <- df %>%
+  rowwise() %>%
+  mutate(
+    PHQ_total = sum(c_across(PHQ_item_1:PHQ_item_9), na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+library(dplyr)
+
+df11 <- df10 %>%
+  mutate(
+    PHQ_severity = case_when(
+      PHQ_total <= 4 ~ "Minimal / None",
+      PHQ_total <= 9 ~ "Mild",
+      PHQ_total <= 14 ~ "Moderate",
+      PHQ_total <= 19 ~ "Moderately Severe",
+      PHQ_total >= 20 ~ "Severe",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+```
+
+```{r}
+severity_table_gt <- df11 %>%
+  select(PHQ_severity) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "no"
+  ) %>%
+  modify_header(label ~ "**PHQ Severity**") %>%
+  bold_labels()
+
+severity_table_gt
+
+
+```
+
 
