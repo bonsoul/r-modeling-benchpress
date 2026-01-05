@@ -16,7 +16,7 @@ library(tidyverse)
 ```
 
 ```{r}
-data <- read_csv("D:/Downloads/medication_adherence_edited.csv")
+data <- read_csv("D:/Downloads/medication_adherence.editted4.csv")
 ```
 
 ```{r}
@@ -93,59 +93,34 @@ adherence_table %>% as_gt()
 ```
 
 
-```{r}
-library(dplyr)
-
-# First, make sure your data is already recoded as Adherence / Non-adherence
-# data_adherence is from previous step
-
-# Create overall adherence score
-data_overall <- data_adherence %>%
-  rowwise() %>%
-  mutate(
-    Adherence_Score = sum(c_across(everything()) == "Adherence")
-  ) %>%
-  ungroup()
-
-# Summary table for adherence score
-overall_summary <- data_overall %>%
-  count(Adherence_Score) %>%
-  mutate(Percentage = round(n / sum(n) * 100, 1))
-
-overall_summary
-
-```
 
 
 ```{r}
 library(dplyr)
 
 # Recode all 5 variables: "Never" & "Once" → "Adherence", else "Non-adherence"
-data_adherence <- data %>%
+data_adherence1 <- data %>%
   mutate(across(everything(), ~ factor(ifelse(. %in% c("Never", "Once"), 
                                               "Adherence", "Non-adherence"))))
 
 ```
 
 
-```{r}
-# Check frequencies per variable
-lapply(data_adherence, table)
 
-```
+
+
+
 
 ```{r}
-data_binary <- data_adherence %>%
+data_binary <- data_adherence1 %>%
   rowwise() %>%
   mutate(
-    Overall_Adherence = ifelse(all(c_across(everything()) == "Adherence"),
+    Overall_Adherence = ifelse(sum(c_across(everything()) == "Adherence") >= 4,
                                "Adherence", "Non-adherence")
   ) %>%
   ungroup()
 
-```
-
-```{r}
+# Summarize
 binary_summary <- data_binary %>%
   count(Overall_Adherence) %>%
   mutate(Percentage = round(n / sum(n) * 100, 1))
@@ -154,4 +129,26 @@ binary_summary
 
 ```
 
+
+```{r}
+library(dplyr)
+library(gtsummary)
+
+# Create a gtsummary table for one categorical variable
+binary_summary_table <- data_binary %>%
+  select(Overall_Adherence) %>%
+  tbl_summary(
+    missing = "no",                       # Exclude missing
+    label = list(Overall_Adherence ~ "Adherence Status"),  # Rename column
+    statistic = list(all_categorical() ~ "{n} ({p}%)")     # Count & percentage
+  ) %>%
+  add_overall() %>%                        # Optional: add overall row
+  modify_header(label = "**Adherence Status**")           # Nice header
+
+# Print the table
+binary_summary_table
+
+
+
+```
 
