@@ -1,0 +1,157 @@
+---
+title: "Adhere.Generated"
+author: "Bonsoul"
+date: "`r Sys.Date()`"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+data <- read_csv("D:/Downloads/medication_adherence_edited.csv")
+```
+
+```{r}
+colnames(data)
+```
+
+
+```{r}
+library(dplyr)
+
+data %>%
+  summarise(across(everything(), ~ list(
+    Frequency = table(.),
+    Percentage = prop.table(table(.)) * 100
+  )))
+
+```
+
+
+```{r}
+library(dplyr)
+library(gtsummary)
+
+# Convert character variables to factor (important for gtsummary)
+data_factor <- data %>%
+  mutate(across(everything(), as.factor))
+
+# Create descriptive summary table
+summary_table <- data_factor %>%
+  tbl_summary(
+    type = all_categorical() ~ "categorical",
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "no"
+  )
+
+# Print table nicely
+summary_table %>% as_gt()
+
+```
+
+
+```{r}
+library(dplyr)
+library(gtsummary)
+
+# Define a function to recode adherence
+recode_adherence <- function(x) {
+  factor(ifelse(x %in% c("Never", "Once"), "Adherence", "Non-adherence"))
+}
+
+# Apply to all variables
+data_adherence <- data %>%
+  mutate(across(everything(), recode_adherence))
+
+# Create summary table
+adherence_table <- data_adherence %>%
+  tbl_summary(
+    type = all_categorical() ~ "categorical",
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "no",
+    label = list(
+      Miss_Medicines = "Missed Medicines",
+      Refuse_Medicines = "Refused Medicines",
+      Not_Take_In_Front_Of_Others = "Did not take in front of others",
+      Do_Not_Know_Why_Taking = "Did not know why taking",
+      Problems_Taking_On_Time = "Problems taking on time"
+    )
+  ) %>%
+  add_overall()  # Optional: adds overall adherence % for each variable
+
+# Print nicely
+adherence_table %>% as_gt()
+
+```
+
+
+```{r}
+library(dplyr)
+
+# First, make sure your data is already recoded as Adherence / Non-adherence
+# data_adherence is from previous step
+
+# Create overall adherence score
+data_overall <- data_adherence %>%
+  rowwise() %>%
+  mutate(
+    Adherence_Score = sum(c_across(everything()) == "Adherence")
+  ) %>%
+  ungroup()
+
+# Summary table for adherence score
+overall_summary <- data_overall %>%
+  count(Adherence_Score) %>%
+  mutate(Percentage = round(n / sum(n) * 100, 1))
+
+overall_summary
+
+```
+
+
+```{r}
+library(dplyr)
+
+# Recode all 5 variables: "Never" & "Once" → "Adherence", else "Non-adherence"
+data_adherence <- data %>%
+  mutate(across(everything(), ~ factor(ifelse(. %in% c("Never", "Once"), 
+                                              "Adherence", "Non-adherence"))))
+
+```
+
+
+```{r}
+# Check frequencies per variable
+lapply(data_adherence, table)
+
+```
+
+```{r}
+data_binary <- data_adherence %>%
+  rowwise() %>%
+  mutate(
+    Overall_Adherence = ifelse(all(c_across(everything()) == "Adherence"),
+                               "Adherence", "Non-adherence")
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+binary_summary <- data_binary %>%
+  count(Overall_Adherence) %>%
+  mutate(Percentage = round(n / sum(n) * 100, 1))
+
+binary_summary
+
+```
+
+
