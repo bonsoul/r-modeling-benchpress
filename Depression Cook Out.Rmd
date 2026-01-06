@@ -69,7 +69,7 @@ library(dplyr)
 # Recode PHQ responses to numeric scores
 df <- df2 %>%
   mutate(across(
-    PHQ_item_1:PHQ_item_9,
+    PHQ_item_1:PHQ_item_10,
     ~ case_when(
       . == "Not at all" ~ 0,
       . == "Several days" ~ 1,
@@ -85,7 +85,7 @@ df <- df2 %>%
 df10 <- df %>%
   rowwise() %>%
   mutate(
-    PHQ_total = sum(c_across(PHQ_item_1:PHQ_item_9), na.rm = TRUE)
+    PHQ_total = sum(c_across(PHQ_item_1:PHQ_item_10), na.rm = TRUE)
   ) %>%
   ungroup()
 
@@ -99,9 +99,9 @@ df11 <- df10 %>%
     PHQ_severity = case_when(
       PHQ_total <= 3 ~ "Minimal / None",
       PHQ_total <= 10 ~ "Mild",
-      PHQ_total <= 16 ~ "Moderate",
-      PHQ_total <= 17 ~ "Moderately Severe",
-      PHQ_total >= 18 ~ "Severe",
+      PHQ_total <= 15 ~ "Moderate",
+      PHQ_total <= 20 ~ "Moderately Severe",
+      PHQ_total >= 20 ~ "Severe",
       TRUE ~ NA_character_
     )
   )
@@ -125,5 +125,80 @@ severity_table_gt
 
 
 ```
+
+
+
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+
+df10_clean <- df10 %>%
+  mutate(across(
+    starts_with("PHQ_item_"),
+    ~ as.numeric(.)
+  ))
+
+item_severity <- df10_clean %>%
+  pivot_longer(
+    cols = starts_with("PHQ_item_"),
+    names_to = "Item",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    PHQ_severity = case_when(
+      Score == 0 ~ "Minimal / None",
+      Score == 1 ~ "Mild",
+      Score == 2 ~ "Moderate",
+      Score == 3 ~ "Moderately Severe",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+```
+
+
+```{r}
+item_severity_table <- item_severity %>%
+  count(Item, PHQ_severity) %>%
+  group_by(Item) %>%
+  mutate(
+    percent = round(n / sum(n) * 100, 1),
+    display = paste0(n, " (", percent, "%)")
+  ) %>%
+  ungroup()
+
+```
+
+```{r}
+item_severity_table$PHQ_severity <- factor(
+  item_severity_table$PHQ_severity,
+  levels = c(
+    "Minimal / None",
+    "Mild",
+    "Moderate",
+    "Moderately Severe",
+    "Severe"
+  )
+)
+
+```
+
+
+
+```{r}
+item_severity %>%
+  tbl_summary(
+    by = Item,
+    include = PHQ_severity,
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "no"
+  ) %>%
+  bold_labels()
+
+```
+
 
 
