@@ -19,8 +19,6 @@ library(tidyverse)
 ```{r}
 df1 <- read_csv("D:/Downloads/depressed_PHQ_dataset.edit.csv")
 
-df2 <- read_csv("D:/Downloads/PHQA_with_depression_levels.edit.csv")
-
 ```
 
 ```{r}
@@ -87,30 +85,42 @@ descriptive_table %>%
 # Load dplyr
 library(dplyr)
 
-# Recode PHQ responses to numeric scores
 df <- df1 %>%
   mutate(across(
-    PHQ_item_1:PHQ_item_10,
+    c(
+      Feeling_sad, Crying_more, Loss_of_interest, Less_time_friends,
+      Sleep_problems, Appetite_changes, Tired, Feeling_bad,
+      Concentration, Self_harm_thoughts
+    ),
     ~ case_when(
-      . == "Not at all" ~ 0,
-      . == "Several days" ~ 1,
+      . == "Not at all"           ~ 0,
+      . == "Several days"         ~ 1,
       . == "More than half the days" ~ 2,
-      . == "Nearly every day" ~ 3,
-      TRUE ~ NA_real_
+      . == "Nearly every day"     ~ 3,
+      TRUE                        ~ NA_real_
     )
   ))
 
+
 ```
+
+
 
 ```{r}
 df10 <- df %>%
   rowwise() %>%
   mutate(
-    PHQ_total = sum(c_across(PHQ_item_1:PHQ_item_10), na.rm = TRUE)
+    PHQ_total = sum(c_across(c(
+      Feeling_sad, Crying_more, Loss_of_interest, Less_time_friends,
+      Sleep_problems, Appetite_changes, Tired, Feeling_bad,
+      Concentration, Self_harm_thoughts
+    )), na.rm = TRUE)
   ) %>%
   ungroup()
 
 ```
+
+
 
 ```{r}
 library(dplyr)
