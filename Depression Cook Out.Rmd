@@ -12,6 +12,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(tidyverse)
+```
+
+
+```{r}
 df1 <- read_csv("D:/Downloads/depressed_PHQ_dataset.edit.csv")
 
 df2 <- read_csv("D:/Downloads/PHQA_with_depression_levels.edit.csv")
@@ -92,17 +97,19 @@ library(dplyr)
 df11 <- df10 %>%
   mutate(
     PHQ_severity = case_when(
-      PHQ_total <= 4 ~ "Minimal / None",
-      PHQ_total <= 9 ~ "Mild",
-      PHQ_total <= 14 ~ "Moderate",
-      PHQ_total <= 19 ~ "Moderately Severe",
-      PHQ_total >= 20 ~ "Severe",
+      PHQ_total <= 3 ~ "Minimal / None",
+      PHQ_total <= 10 ~ "Mild",
+      PHQ_total <= 16 ~ "Moderate",
+      PHQ_total <= 17 ~ "Moderately Severe",
+      PHQ_total >= 18 ~ "Severe",
       TRUE ~ NA_character_
     )
   )
 
 
 ```
+
+
 
 ```{r}
 severity_table_gt <- df11 %>%
