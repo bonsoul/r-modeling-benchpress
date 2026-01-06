@@ -24,12 +24,22 @@ df2 <- read_csv("D:/Downloads/PHQA_with_depression_levels.edit.csv")
 ```
 
 ```{r}
-library(dplyr)
-library(purrr)
+library(labelled)
 
-df1 %>%
-  select(starts_with("PHQ")) %>%
-  map(~ unique(.x))
+df1 <- df1 %>%
+  rename(
+    Feeling_sad        = PHQ1_feeling_sad,
+    Crying_more        = PHQ2_crying_more,
+    Loss_of_interest   = PHQ3_loss_interest,
+    Less_time_friends  = PHQ4_less_time_friends,
+    Sleep_problems     = PHQ5_sleep,
+    Appetite_changes  = PHQ6_appetite,
+    Tired              = PHQ7_tired,
+    Feeling_bad        = PHQ8_feeling_bad,
+    Concentration      = PHQ9_concentration,
+    Self_harm_thoughts = PHQ10_self_harm
+  )
+
 
 
 ```
@@ -44,7 +54,7 @@ library(gtsummary)
 phq_levels <- c("Not at all", "Several days", "More than half the days", "Nearly every day")
 
 # Recode all PHQ columns
-phq_data_recoded <- df2 %>%
+phq_data_recoded <- df1%>%
   mutate(across(starts_with("PHQ"), 
                 ~ factor(.x, levels = phq_levels, ordered = TRUE)))
 
@@ -61,13 +71,24 @@ descriptive_table
 ```
 
 
+```{r}
+library(officer)
+library(flextable)
+
+descriptive_table %>%
+  as_flex_table() %>%
+  save_as_docx(path = "PHQ_descriptive_table.docx")
+
+```
+
+
 
 ```{r}
 # Load dplyr
 library(dplyr)
 
 # Recode PHQ responses to numeric scores
-df <- df2 %>%
+df <- df1 %>%
   mutate(across(
     PHQ_item_1:PHQ_item_10,
     ~ case_when(
@@ -124,6 +145,12 @@ severity_table_gt <- df11 %>%
 severity_table_gt
 
 
+```
+
+```{r}
+severity_table_gt %>%
+  as_flex_table() %>%
+  save_as_docx(path = "PHQ_Severity_table.docx")
 ```
 
 
