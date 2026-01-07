@@ -19,23 +19,25 @@ library(tidyverse)
 ```{r}
 df1 <- read_csv("D:/Downloads/depressed_PHQ_dataset.edit.csv")
 
+dat <- read_csv("D:/Downloads/PHQA_with_depression_levels.edit.csv")
+
 ```
 
 ```{r}
 library(labelled)
 
-df1 <- df1 %>%
+df1 <- dat %>%
   rename(
-    Feeling_sad        = PHQ1_feeling_sad,
-    Crying_more        = PHQ2_crying_more,
-    Loss_of_interest   = PHQ3_loss_interest,
-    Less_time_friends  = PHQ4_less_time_friends,
-    Sleep_problems     = PHQ5_sleep,
-    Appetite_changes  = PHQ6_appetite,
-    Tired              = PHQ7_tired,
-    Feeling_bad        = PHQ8_feeling_bad,
-    Concentration      = PHQ9_concentration,
-    Self_harm_thoughts = PHQ10_self_harm
+    Feeling_sad        = PHQ_item_1,
+    Crying_more        = PHQ_item_2,
+    Loss_of_interest   = PHQ_item_3,
+    Less_time_friends  = PHQ_item_4,
+    Sleep_problems     = PHQ_item_5,
+    Appetite_changes  = PHQ_item_6,
+    Tired              = PHQ_item_7,
+    Feeling_bad        = PHQ_item_8,
+    Concentration      = PHQ_item_9,
+    Self_harm_thoughts = PHQ_item_10
   )
 
 
@@ -47,7 +49,6 @@ df1 <- df1 %>%
 library(dplyr)
 library(gtsummary)
 
-# Example: Recode PHQ responses to ordered factors
 # Define common PHQ response levels
 phq_levels <- c("Not at all", "Several days", "More than half the days", "Nearly every day")
 
@@ -83,7 +84,6 @@ descriptive_table %>%
 
 ```{r}
 # Load dplyr
-library(dplyr)
 
 df <- df1 %>%
   mutate(across(
@@ -119,6 +119,7 @@ df10 <- df %>%
   ungroup()
 
 ```
+
 
 
 
@@ -165,21 +166,32 @@ severity_table_gt %>%
 
 
 
-
-
 ```{r}
 library(dplyr)
 library(tidyr)
 
-df10_clean <- df10 %>%
-  mutate(across(
-    starts_with("PHQ_item_"),
-    ~ as.numeric(.)
-  ))
+phq_items <- c(
+  "Feeling_sad", "Crying_more", "Loss_of_interest", "Less_time_friends",
+  "Sleep_problems", "Appetite_changes", "Tired", "Feeling_bad",
+  "Concentration", "Self_harm_thoughts"
+)
 
-item_severity <- df10_clean %>%
+```
+
+
+```{r}
+df12 <- df11 %>%
+  mutate(across(all_of(phq_items), as.numeric))
+
+```
+
+
+
+
+```{r}
+item_severity <- df11 %>%
   pivot_longer(
-    cols = starts_with("PHQ_item_"),
+    cols = all_of(phq_items),
     names_to = "Item",
     values_to = "Score"
   ) %>%
@@ -195,6 +207,8 @@ item_severity <- df10_clean %>%
 
 
 ```
+
+
 
 
 ```{r}
@@ -234,6 +248,21 @@ item_severity %>%
     missing = "no"
   ) %>%
   bold_labels()
+
+```
+
+```{r}
+library(gtsummary)
+library(flextable)
+
+item_severity %>%
+  tbl_summary(
+    by = Item,
+    statistic = list(all_categorical() ~ "{n} ({p}%)"),
+    missing = "no"
+  ) %>%
+  as_flex_table() %>%
+  save_as_docx(path = "item_severity.docx")
 
 ```
 
