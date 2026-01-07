@@ -1,0 +1,33 @@
+---
+title: "CHI-SQUARE"
+author: "Bonsoul"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+df101 <- df11 %>% mutate(id = row_number())
+data_bin <- data_binary %>% mutate(id = row_number())
+
+```
+
+```{r}
+merged_data <- df101 %>%
+  select(id, PHQ_severity) %>%
+  left_join(data_bin, by = "id")
+
+```
+
+```{r}
+merged_data <- merged_data %>%
+  mutate(
+    PHQ_severity = factor(PHQ_severity),
+    across(-c(id, PHQ_severity), factor)
+  )
+
+```
+
