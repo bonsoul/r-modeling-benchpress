@@ -48,8 +48,91 @@ library(gtsummary)
 tbl_adh <- adh_tf %>%
   tbl_summary(
     statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "no"
+  )
+
+
+```
+
+```{r, updating the names}
+
+
+adh_gf <- adh_tf %>%
+  rename(
+    Miss_medicines = do_you_ever_miss_the_medicines_you_are_supposed_to_take,
+    Refuse_medicines = do_you_ever_refuse_to_take_the_medicines_you_are_supposed_to_take,
+    Avoid_taking_meds_in_front_of_others = do_you_ever_not_take_the_medicines_because_you_do_not_want_to_take_them_in_front_of_other_people,
+    Problems_understanding_meds = do_you_ever_have_problems_taking_the_medicines_because_you_do_not_know_why_you_are_taking_them,
+    Problems_taking_meds_on_time = do_you_ever_have_problems_taking_the_medicines_on_time_or_taking_them_every_day
+  )
+
+```
+
+
+```{r}
+adherence_vars <- c(
+  "Miss_medicines",
+  "Refuse_medicines",
+  "Avoid_taking_meds_in_front_of_others",
+  "Problems_understanding_meds",
+  "Problems_taking_meds_on_time"
+)
+
+```
+
+```{r}
+# Check unique values in each adherence column
+sapply(adh_gf[adherence_vars], unique)
+
+```
+
+```{r}
+# Ensure all adherence columns are characters
+adh_gf <- adh_gf %>%
+  mutate(across(all_of(adherence_vars), as.character))
+```
+
+
+```{r}
+# Step 1: Clean the adherence columns
+adh_hf <- adh_gf %>%
+  mutate(across(all_of(adherence_vars), ~ str_trim(.x)))  # remove leading/trailing spaces
+```
+
+
+```{r}
+
+
+dfs_dha <- adh_hf %>%
+  mutate(
+    adherence_binary = if_else(
+      if_any(
+        all_of(adherence_vars),
+        ~ .x %in% c("Once", "Sometimes", "Severally")
+      ),
+      "Poor adherence",
+      "Good adherence"
+    ),
+    adherence_binary = factor(adherence_binary, levels = c("Good adherence", "Poor adherence"))
+  )
+
+```
+
+```{r}
+table(dfs_dha$adherence_binary)
+
+```
+
+
+```{r}
+library(gtsummary)
+
+tbl_med1 <- dfs_dha %>%
+  select(adherence_binary) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
     missing = "no",
-    label = labels_list
+    label = list(adherence_binary ~ "Medication adherence")
   )
 
 ```
