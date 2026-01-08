@@ -60,3 +60,129 @@ chi_results
 
 ```
 
+
+
+
+```{r}
+library(dplyr)
+
+chi_results_clean <- chi_results %>%
+  rename(
+    `Chi-square` = Chi_square,
+    `df` = df,
+    `p-value` = p_value
+  ) %>%
+  mutate(
+    Variable = recode(Variable,
+      "Miss_Medicines" = "Missed medications",
+      "Refuse_Medicines" = "Refused medications",
+      "Not_Take_In_Front_Of_Others" = "Did not take medication in front of others",
+      "Do_Not_Know_Why_Taking" = "Did not know reason for taking medication",
+      "Problems_Taking_On_Time" = "Problems taking medication on time",
+      "Overall_Adherence" = "Overall medication adherence"
+    ),
+    `Chi-square` = round(`Chi-square`, 2),
+    `p-value` = round(`p-value`, 3)
+  )
+
+```
+
+
+
+```{r}
+library(gtsummary)
+
+chi_gtsummary <- chi_results_clean %>%
+  tbl_summary(
+    statistic = list(
+      all_continuous() ~ "{mean}"
+    ),
+    digits = all_continuous() ~ 2
+  ) %>%
+  modify_header(
+    label ~ "**Adherence Variable**",
+    stat_0 ~ "**Test Statistic**"
+  ) %>%
+  modify_spanning_header(
+    all_stat_cols() ~ "**Chi-square Test Results**"
+  )
+
+```
+
+```{r}
+library(dplyr)
+library(gtsummary)
+
+chi_results_clean <- chi_results_clean %>%
+  mutate(
+    `p-value` = style_pvalue(`p-value`, digits = 3)
+  )
+
+
+```
+
+```{r}
+chi_gtsummary <- chi_results_clean %>%
+  tbl_summary(
+    statistic = all_continuous() ~ "{mean}",
+    digits = all_continuous() ~ 2,
+    label = list(
+      Variable ~ "Adherence variable",
+      `Chi-square` ~ "χ² statistic",
+      df ~ "Degrees of freedom",
+      `p-value` ~ "p-value"
+    )
+  ) %>%
+  modify_caption(
+    "**Table X. Association between depression severity and medication adherence behaviors**"
+  ) %>%
+  modify_footnote(
+    everything() ~ "Chi-square test used; df = 4 for all comparisons."
+  )
+
+```
+
+
+```{r}
+library(dplyr)
+
+chi_results_kable <- chi_results %>%
+  mutate(
+    Variable = recode(Variable,
+      "Miss_Medicines" = "Missed medications",
+      "Refuse_Medicines" = "Refused medications",
+      "Not_Take_In_Front_Of_Others" = "Did not take medication in front of others",
+      "Do_Not_Know_Why_Taking" = "Did not know reason for taking medication",
+      "Problems_Taking_On_Time" = "Problems taking medication on time",
+      "Overall_Adherence" = "Overall medication adherence"
+    ),
+    Chi_square = round(Chi_square, 2),
+    p_value = round(p_value, 3)
+  )
+
+
+```
+
+```{r}
+library(kableExtra)
+
+kable(
+  chi_results_kable,
+  col.names = c("Adherence variable", "χ² statistic", "df", "p-value"),
+  caption = "Table X. Association between depression severity (PHQ) and medication adherence behaviors",
+  align = "lccc",
+  booktabs = TRUE
+) %>%
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  footnote(
+    general = "Chi-square test used; df = 4 for all comparisons. Chi-square approximation may be affected by small cell counts."
+  )
+
+
+```
+
+
+
