@@ -24,8 +24,217 @@ df <- read_excel("D:/Downloads/data with variable names(4)(1).xlsx")
 
 ```
 
-```{r}
+```{r, understanding the structure}
+str(df)
 
 ```
 
+```{r}
+library(dplyr)
+library(gtsummary)
+library(janitor)
+library(forcats)
+
+```
+
+```{r}
+dim(df)
+```
+
+```{r, recoding the features}
+df %>%
+  mutate(
+    maritalstatus = factor(maritalstatus),
+    residence = factor(residence),
+    employmentstatus = factor(employmentstatus),
+    ancattendance = factor(ancattendance),
+    hivstatusbeforepregnancy = factor(hivstatusbeforepregnancy),
+    adherence = factor(adherence, levels = c("poor", "fair", "good")),
+    sexofthebaby = factor(sexofthebaby),
+    educationlevel = factor(educationlevel)
+  )
+
+```
+
+
+```{r}
+library(dplyr)
+library(gtsummary)
+
+df %>%
+  select(subcounty) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "ifany"
+  )
+
+```
+
+
+```{r}
+df %>%
+  select(hivstatusbeforepregnancy) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "ifany"
+  )
+
+
+```
+
+```{r}
+df %>%
+  select(hivstatusbeforepregnancy, sexofthebaby) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "ifany"
+  )
+
+```
+
+```{r}
+
+df %>%
+  select(
+    yearpcr,
+    sexofthebaby
+  ) %>%
+  mutate(
+    yearpcr = factor(
+      yearpcr,
+      levels = c("positive", "negative"),
+      labels = c("Positive", "Negative")
+    ),
+    sexofthebaby = factor(
+      sexofthebaby,
+      levels = c("female", "male"),
+      labels = c("Female", "Male")
+    )
+  ) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "no",
+    label = list(
+      yearpcr ~ "HIV positive at 18 months",
+      sexofthebaby ~ "Sex of the baby"
+    )
+  )
+
+```
+
+
+```{r}
+
+df %>%
+  select(yearpcr, sexofthebaby) %>%
+  mutate(
+    yearpcr = factor(
+      yearpcr,
+      levels = c("positive", "negative"),
+      labels = c("Positive", "Negative")
+    ),
+    sexofthebaby = factor(
+      sexofthebaby,
+      levels = c("female", "male"),
+      labels = c("Female", "Male")
+    )
+  ) %>%
+  tbl_summary(
+    by = yearpcr,
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "no",
+    label = list(
+      sexofthebaby ~ "Sex of the baby"
+    )
+  )
+
+```
+
+
+
+
+
+
+
+
+```{r, descriptive analysis}
+
+df1 <- df %>%
+  mutate(
+    age_cat = cut(age,
+                  breaks = c(15, 24, 34, 44, 55),
+                  labels = c("15–24", "25–34", "35–44", "45+"),
+                  right = TRUE),
+
+    hb_cat = case_when(
+      hemoglobinlevelduringpregnancy < 11 ~ "Anaemic (<11 g/dL)",
+      hemoglobinlevelduringpregnancy >= 11 ~ "Normal (≥11 g/dL)"
+    ),
+
+    anc_visits_cat = case_when(
+      numberofancvisitsmade == 0 ~ "0 visits",
+      numberofancvisitsmade %in% 1:3 ~ "1–3 visits",
+      numberofancvisitsmade >= 4 ~ "≥4 visits"
+    ),
+
+    bwt_cat = case_when(
+      bwtkgs < 2.5 ~ "Low birth weight (<2.5 kg)",
+      bwtkgs >= 2.5 ~ "Normal birth weight (≥2.5 kg)"
+    ),
+
+    bf_duration_cat = case_when(
+      durationofbfmonths < 12 ~ "<12 months",
+      durationofbfmonths >= 12 ~ "≥12 months"
+    )
+  )
+
+
+
+```
+
+```{r}
+df1 %>%
+  select(
+    age_cat,
+    hb_cat,
+    anc_visits_cat,
+    bwt_cat,
+    bf_duration_cat
+  ) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)",
+    missing = "ifany"
+  )
+
+```
+
+```{r}
+df %>%
+  select(
+    birthpcr, weekspcr, monthspcr,
+    yearpcr, monthsantibodytest
+  ) %>%
+  tbl_summary(
+    statistic = all_categorical() ~ "{n} ({p}%)"
+  )
+
+```
+
+```{r}
+df %>%
+  select(
+    adherence,
+    age, hemoglobinlevelduringpregnancy,
+    numberofancvisitsmade,
+    birthpcr
+  ) %>%
+  tbl_summary(
+    by = adherence,
+    #statistic = all_continuous() ~ "{mean} ± {sd}",
+    statistic = all_categorical() ~ "{n} ({p}%)"
+  ) %>%
+  add_p()
+
+
+```
 
