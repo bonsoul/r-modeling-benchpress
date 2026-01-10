@@ -67,6 +67,16 @@ data(pisaitems)
 head(pisaitems)
 
 
+
+d <- pisaitems %>%
+  select(starts_with("ST25Q")) %>%
+  sjmisc::to_factor(ordered = TRUE)
+
+view_df(d, show.frq = TRUE, show.prc = TRUE)
+
+plot_likert(d, show.prc = TRUE)
+
+
 d <- pisaitems %>%
   dplyr::select(starts_with("ST25Q"))
 

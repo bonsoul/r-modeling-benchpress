@@ -189,7 +189,7 @@ df12 <- df11 %>%
 
 
 ```{r}
-item_severity <- df11 %>%
+item_severity <- df12 %>%
   pivot_longer(
     cols = all_of(phq_items),
     names_to = "Item",
