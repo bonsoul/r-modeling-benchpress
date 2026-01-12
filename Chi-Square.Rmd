@@ -12,6 +12,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(dplyr)
+```
+
+
+```{r}
 df101 <- df11 %>% mutate(id = row_number())
 data_bin <- data_binary %>% mutate(id = row_number())
 
@@ -144,8 +149,6 @@ chi_gtsummary <- chi_results_clean %>%
 
 
 ```{r}
-library(dplyr)
-
 chi_results_kable <- chi_results %>%
   mutate(
     Variable = recode(Variable,
