@@ -258,3 +258,36 @@ tbl_summary(df,
 
 ```
 
+
+```{r}
+library(dplyr)
+library(gt)
+
+# Summarize counts and percentages
+summary_table <- df %>%
+  group_by(whohivdiseasestage, hivstatusbeforepregnancy) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(whohivdiseasestage) %>%
+  mutate(percent = round(100 * n / sum(n), 2)) %>%
+  ungroup()
+
+# Create gt table
+summary_table %>%
+  gt(groupname_col = "whohivdiseasestage") %>%
+  fmt_number(
+    columns = vars(percent),
+    decimals = 2,
+    pattern = "{x} %"
+  ) %>%
+  cols_label(
+    diagnosis_timing = "",
+    n = "Count",
+    percent = "Percentage"
+  ) %>%
+  tab_header(
+    title = "Diagnosis Timing by WHO HIV Disease Stage"
+  )
+
+
+```
+
