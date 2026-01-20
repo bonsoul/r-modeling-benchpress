@@ -22,6 +22,9 @@ data_bin <- data_binary %>% mutate(id = row_number())
 
 ```
 
+
+
+
 ```{r}
 merged_data <- df101 %>%
   select(id, PHQ_severity) %>%
@@ -37,6 +40,158 @@ merged_data <- merged_data %>%
   )
 
 ```
+
+
+```{r}
+severe_data <- merged_data %>%
+  dplyr::filter(PHQ_severity %in% c(
+    "Moderate",
+    "Moderately Severe",
+    "Severe"
+  ))
+
+```
+
+```{r}
+adherence_vars <- c(
+  "Miss_Medicines",
+  "Refuse_Medicines",
+  "Not_Take_In_Front_Of_Others",
+  "Do_Not_Know_Why_Taking",
+  "Problems_Taking_On_Time",
+  "Overall_Adherence"
+)
+
+```
+
+```{r}
+severe_data$PHQ_severity <- droplevels(severe_data$PHQ_severity)
+
+```
+
+```{r}
+test_results <- lapply(adherence_vars, function(var) {
+  
+  tab <- table(severe_data$PHQ_severity, severe_data[[var]])
+  
+  # Expected counts from chi-square
+  chi <- suppressWarnings(chisq.test(tab))
+  
+  use_fisher <- any(chi$expected < 5)
+  
+  test <- if (use_fisher) fisher.test(tab) else chi
+  
+  data.frame(
+    Variable = var,
+    Test_Used = ifelse(use_fisher, "Fisher's Exact", "Chi-square"),
+    Statistic = ifelse(use_fisher, NA, round(test$statistic, 2)),
+    df = ifelse(use_fisher, NA, test$parameter),
+    p_value = round(test$p.value, 3)
+  )
+})
+
+final_results <- do.call(rbind, test_results)
+final_results
+
+
+```
+
+
+```{r}
+library(dplyr)
+
+final_results_neat <- final_results %>%
+  mutate(
+    Statistic = ifelse(is.na(Statistic), "—", as.character(Statistic)),
+    df = ifelse(is.na(df), "—", as.character(df)),
+    p_value = formatC(p_value, format = "f", digits = 3)
+  )
+
+```
+
+
+```{r}
+library(knitr)
+
+kable(
+  final_results_neat,
+  caption = "Association Between PHQ Depression Severity and Medication Adherence Behaviors",
+  col.names = c("Adherence Variable", "Statistical Test", "Test Statistic", "df", "p-value"),
+  align = "lcccc"
+)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+severe_data <- severe_data %>%
+  mutate(PHQ_group = ifelse(
+    PHQ_severity == "Moderate",
+    "Moderate",
+    "Moderate–Severe"
+  ))
+
+```
+
+```{r}
+table(severe_data$PHQ_group, severe_data$Miss_Medicines)
+fisher.test(table(severe_data$PHQ_group, severe_data$Miss_Medicines))
+
+```
+
+
+
+
+
+
+
+
+```{r}
+chi_results <- lapply(adherence_vars, function(var) {
+  tab <- table(severe_data$PHQ_severity, severe_data[[var]])
+  test <- chisq.test(tab)
+  
+  data.frame(
+    Variable = var,
+    Chi_square = round(test$statistic, 2),
+    df = test$parameter,
+    p_value = round(test$p.value, 3)
+  )
+})
+
+chi_results <- do.call(rbind, chi_results)
+chi_results
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 adherence_vars <- c(
