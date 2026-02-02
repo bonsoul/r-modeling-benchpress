@@ -1,0 +1,423 @@
+---
+title: "Kable"
+author: "Bonsoul"
+date: "2025-10-13"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(flextable)
+library(dlookr)
+```
+
+```{r, data, include=FALSE}
+
+dat <- read_csv("D:/Downloads/R Case Studies/FRANCIS MOTIRI/Francis_RQ (2).csv")
+
+```
+
+```{r}
+census_data <- read_csv("D:/Downloads/2019-population_census-report-per-county.csv")
+```
+
+
+```{r}
+
+
+dat1 <- dat %>% drop_na()
+
+```
+
+
+```{r}
+percent_nulls <- function(dat) {
+  dat %>%
+    summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+    pivot_longer(
+      everything(),
+      names_to = "variable",
+      values_to = "percent_null"
+    )
+}
+
+percent_nulls(dat) %>% flextable()
+
+
+```
+
+
+```{r}
+library(dplyr)
+
+null_summary <- dat %>%
+  summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+  pivot_longer(everything(),
+               names_to = "variable",
+               values_to = "percent_null")
+
+vars_to_drop <- null_summary %>%
+  filter(percent_null > 60) %>%
+  pull(variable)
+
+dat2 <- dat %>%
+  select(-all_of(vars_to_drop))
+
+
+```
+
+
+```{r}
+
+percent_nulls <- function(dat2) {
+  dat2 %>%
+    summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+    pivot_longer(
+      everything(),
+      names_to = "variable",
+      values_to = "percent_null"
+    )
+}
+
+
+
+```
+
+
+```{r}
+percent_nulls(dat2) %>%
+  arrange(desc(percent_null)) %>%
+  flextable()
+
+
+```
+
+
+```{r}
+dat2 <- dat2 %>%
+  rename(Gender = `Sex (M/F)`)
+
+```
+
+```{r}
+dat2 <- dat2 %>%
+  mutate(
+    Gender = case_when(
+      Gender %in% c("F", "Female") ~ "Female",
+      Gender %in% c("M", "Male")   ~ "Male",
+      TRUE ~ Gender
+    )
+  )
+
+```
+
+
+```{r}
+dat2 %>%
+  count(`Gender`) %>%
+  mutate(percentage = n / sum(n) * 100) %>%
+  flextable()
+
+```
+
+```{r}
+dat2 %>%
+  count(County) %>%
+  mutate(
+    percentage = round(n / sum(n) * 100, 2)
+  ) %>%
+  arrange(desc(n)) %>%
+  flextable() %>%
+  autofit()
+
+```
+
+```{r}
+tb_county <- dat2 %>%
+  group_by(County) %>%
+  summarise(TB_cases = n()) %>%
+  ungroup()
+
+```
+
+
+```{r}
+library(rnaturalearth)
+library(rnaturalearthhires)
+library(viridis)
+library(sf)
+```
+
+
+```{r}
+shape_file <- st_read("shapefiles/County.shp")
+  
+```
+
+```{r}
+head(shape_file)
+```
+
+```{r}
+kenya_tb <- shape_file %>%
+  left_join(tb_county, by = c("Name" = "County"))  # adjust column if shapefile uses different names
+
+```
+
+
+
+```{r}
+library(RColorBrewer)
+
+ggplot(kenya_tb) +
+  geom_sf(aes(fill = TB_cases), color = "white", linewidth = 0.2) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1, na.value = "grey90") +
+  labs(title = "Distribution of TB Cases by County in Kenya", fill = "TB Cases") +
+  theme_minimal()
+
+```
+
+
+```{r}
+dat3 <- dat2 %>%
+  mutate(
+    County = trimws(County),  # remove extra spaces
+    County = case_when(
+      County == "Tharaka Nithi" ~ "Tharaka-Nithi",
+      County == "Elgeyo Marakwet"  ~ "Elgeyo-Marakwet",
+      County == "Pokot" ~ "West Pokot",
+      TRUE ~ County
+    )
+  )
+```
+
+
+```{r}
+tb_by_county <- dat3 %>%
+  group_by(County) %>%
+  summarise(
+    TB_cases = n(),
+    .groups = "drop"
+  )
+
+```
+
+
+```{r}
+tb_join <- tb_by_county %>%
+  left_join(census_data %>%
+              select(County, Total_Population19), 
+            by = "County")
+
+```
+
+```{r}
+tb_calc <- tb_join %>%
+  mutate(
+    overall_percent = round(100 * TB_cases / sum(TB_cases), 2),
+    prevalence_per_100k = round((TB_cases / Total_Population19) * 1e5, 1)
+  )
+```
+
+```{r}
+tb_calc %>%
+  select(
+    County,
+    Total_Population19,
+    TB_cases,
+    overall_percent,
+    prevalence_per_100k
+  ) %>%
+  arrange(desc(TB_cases)) %>%
+  flextable() %>%
+  autofit()
+```
+
+
+```{r}
+library(ggplot2)
+library(viridis)  # optional, or you can use RColorBrewer
+
+ggplot(tb_by_county, aes(x = TB_cases, y = reorder(County, TB_cases))) +
+  geom_col(fill = "steelblue") +                       # TB cases bars
+  geom_text(aes(label = TB_cases), hjust = -0.1, size = 3) + # labels
+  labs(
+    title = "TB Cases by County in Kenya",
+    x = "Number of TB Cases",
+    y = "County"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(face = "bold")
+  )
+
+```
+
+
+```{r}
+
+tb_by_sex <- dat2 %>%
+  group_by(County, Gender) %>%
+  summarise(TB_cases = n(), .groups = "drop")
+
+
+```
+
+```{r}
+tb_sex_wide <- tb_by_sex %>%
+  tidyr::pivot_wider(
+    names_from = Gender,
+    values_from = TB_cases,
+    values_fill = 0
+  )
+
+```
+
+
+```{r}
+tb_sex_wide <- tb_sex_wide %>%
+  mutate(
+    F_to_M_ratio = round(Female / Male, 2)
+  )
+
+```
+
+
+```{r}
+tb_sex_wide %>%
+  select(County, Female, Male, F_to_M_ratio) %>%
+  arrange(desc(F_to_M_ratio)) %>%
+  flextable() %>%
+  autofit()
+
+```
+
+
+```{r}
+ggplot(tb_by_sex, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(aes(label = TB_cases),
+            position = position_dodge(width = 0.9),
+            hjust = -0.1, size = 3) +
+  labs(
+    title = "TB Cases by County and Gender",
+    x = "Number of TB Cases",
+    y = "County",
+    fill = "Gender"
+  ) +
+  scale_fill_manual(values = c("steelblue", "salmon")) +
+  theme_minimal() +
+  theme(
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(face = "bold")
+  ) +
+  expand_limits(x = max(tb_by_sex$TB_cases) * 1.1)  # gives space for labels
+
+```
+
+
+```{r}
+tb_sex_wide <- tb_by_sex %>%
+  tidyr::pivot_wider(
+    names_from = Gender,
+    values_from = TB_cases,
+    values_fill = 0
+  ) %>%
+  mutate(
+    F_to_M_ratio = round(Female / Male, 2)
+  )
+
+```
+
+
+```{r}
+tb_sex_long <- tb_sex_wide %>%
+  tidyr::pivot_longer(cols = c(Female, Male),
+                      names_to = "Gender",
+                      values_to = "TB_cases") %>%
+  mutate(Gender = factor(Gender, levels = c("Male", "Female")))
+
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(tb_sex_long, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
+  geom_col(position = position_dodge(width = 0.8)) +       # side-by-side bars
+  geom_text(
+    data = tb_sex_wide,
+    aes(x = pmax(Female, Male) + 5, y = County, label = paste0("F:M=", F_to_M_ratio)),
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  scale_fill_manual(values = c("steelblue", "salmon")) +
+  labs(
+    title = "TB Cases by County and Gender with F:M Ratio",
+    x = "Number of TB Cases",
+    y = "County",
+    fill = "Gender"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(face = "bold")
+  )
+
+```
+
+
+```{r}
+ggplot(tb_sex_long, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
+  geom_col(position = "stack") +  # stack the bars
+  geom_text(
+    data = tb_sex_wide,
+    aes(x = Female + Male + 100, y = County, label = paste0("F:M=", F_to_M_ratio)),
+    inherit.aes = FALSE,
+    size = 3
+  ) +
+  scale_fill_manual(values = c("steelblue", "orange")) +
+  labs(
+    title = "Reported Cases of Tuberculosis Stratified by Gender",
+    x = "Number of TB Cases",
+    y = NULL,
+    fill = "Gender"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.y = element_text(size = 10),
+    plot.title = element_text(face = "bold")
+  )
+
+```
+
+```{r}
+
+
+# Count number of records per Health Facility per Month
+reporting_summary <- dat3 %>%
+  group_by(County, `Sub County`, `Health Facility`, Year, Month) %>%
+  summarise(records = n(), .groups = 'drop') %>%
+  arrange(County, `Sub County`, `Health Facility`, Year, Month)
+
+# View summary
+head(reporting_summary)
+
+# Optional: Check missing months per facility
+library(tidyr)
+facility_months <- reporting_summary %>%
+  complete(`Health Facility`, Month, fill = list(records = 0)) %>%
+  group_by(`Health Facility`) %>%
+  summarise(missing_months = sum(records == 0), .groups = 'drop')
+
+facility_months
+
+
+```
+
