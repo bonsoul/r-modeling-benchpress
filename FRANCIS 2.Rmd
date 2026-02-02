@@ -1,7 +1,7 @@
 ---
-title: "Kable"
+title: "Northern Mapping"
 author: "Bonsoul"
-date: "2025-10-13"
+date: "`r Sys.Date()`"
 output: html_document
 editor_options: 
   chunk_output_type: console
@@ -11,44 +11,87 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
-library(tidyverse)
-library(flextable)
-library(dlookr)
-```
-
-```{r, data, include=FALSE}
-
-dat <- read_csv("D:/Downloads/R Case Studies/FRANCIS MOTIRI/Francis_RQ (2).csv")
-
-```
+## R Markdown
 
 ```{r}
-census_data <- read_csv("D:/Downloads/2019-population_census-report-per-county.csv")
-```
+library(sf)
 
-
-```{r}
-
-
-dat1 <- dat %>% drop_na()
+shp <- st_read("~/R Studio/R_Statistical-Language/Cholera_Analysis/shapefiles/County.shp")
 
 ```
 
 
 ```{r}
-percent_nulls <- function(dat) {
-  dat %>%
-    summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
-    pivot_longer(
-      everything(),
-      names_to = "variable",
-      values_to = "percent_null"
-    )
-}
+names(shp)
+```
 
-percent_nulls(dat) %>% flextable()
+```{r}
+plot(
+  st_geometry(shp),
+  col = "lightgrey",
+  border = "black",
+  main = "Counties of Kenya"
+)
 
+```
+
+```{r}
+library(sf)
+library(ggplot2)
+
+county_centroids <- st_point_on_surface(shp)
+
+
+```
+
+```{r}
+ggplot() +
+  geom_sf(data = shp, fill = "grey90", color = "white", linewidth = 0.2) +
+  geom_sf_text(
+    data = county_centroids,
+    aes(label = Name),
+    size = 2,
+    color = "black"
+  ) +
+  labs(title = "Counties of Kenya") +
+  theme_void()
+
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data = shp, fill = "grey90", color = "white", linewidth = 0.2) +
+  geom_sf_text(
+    data = county_centroids,
+    aes(label = Name),
+    size = 2,
+    color = "black"
+  ) +
+  labs(title = "Counties of Kenya") +
+  theme_void() +
+  theme(
+    plot.background  = element_rect(fill = "aliceblue", color = NA),
+    panel.background = element_rect(fill = "aliceblue", color = NA)
+  )
+
+```
+
+
+```{r}
+ggplot() +
+  geom_sf(data = shp, fill = "grey85", color = "white", linewidth = 0.2) +
+  geom_sf_text(
+    data = county_centroids,
+    aes(label = Name),
+    size = 2
+  ) +
+  labs(title = "Counties of Kenya") +
+  theme_void() +
+  theme(
+    plot.background  = element_rect(fill = "ivory", color = NA),
+    panel.background = element_rect(fill = "ivory", color = NA)
+  )
 
 ```
 
@@ -56,368 +99,201 @@ percent_nulls(dat) %>% flextable()
 ```{r}
 library(dplyr)
 
-null_summary <- dat %>%
-  summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
-  pivot_longer(everything(),
-               names_to = "variable",
-               values_to = "percent_null")
+highlight_counties <- c("Marsabit", "Wajir", "Isiolo", "Mandera", "Garissa")
 
-vars_to_drop <- null_summary %>%
-  filter(percent_null > 60) %>%
-  pull(variable)
-
-dat2 <- dat %>%
-  select(-all_of(vars_to_drop))
-
-
-```
-
-
-```{r}
-
-percent_nulls <- function(dat2) {
-  dat2 %>%
-    summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
-    pivot_longer(
-      everything(),
-      names_to = "variable",
-      values_to = "percent_null"
-    )
-}
-
-
-
-```
-
-
-```{r}
-percent_nulls(dat2) %>%
-  arrange(desc(percent_null)) %>%
-  flextable()
-
-
-```
-
-
-```{r}
-dat2 <- dat2 %>%
-  rename(Gender = `Sex (M/F)`)
-
-```
-
-```{r}
-dat2 <- dat2 %>%
+shp <- shp %>%
   mutate(
-    Gender = case_when(
-      Gender %in% c("F", "Female") ~ "Female",
-      Gender %in% c("M", "Male")   ~ "Male",
-      TRUE ~ Gender
-    )
+    highlight = ifelse(Name %in% highlight_counties,
+                       "Highlighted", "Other")
   )
 
 ```
 
 
 ```{r}
-dat2 %>%
-  count(`Gender`) %>%
-  mutate(percentage = n / sum(n) * 100) %>%
-  flextable()
+ggplot() +
+  geom_sf(
+    data = shp,
+    aes(fill = highlight),
+    color = "white",
+    linewidth = 0.2
+  ) +
+  geom_sf_text(
+    data = county_centroids,
+    aes(label = Name),
+    size = 2,
+    color = "black"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Highlighted" = "grey20",
+      "Other" = "grey85"
+    )
+  ) +
+  labs(
+    title = "Highlighted Counties in Kenya",
+    fill = ""
+  ) +
+  theme_void() +
+  theme(
+    plot.background  = element_rect(fill = "aliceblue", color = NA),
+    panel.background = element_rect(fill = "aliceblue", color = NA)
+  )
 
 ```
 
 ```{r}
-dat2 %>%
-  count(County) %>%
+library(dplyr)
+
+highlight_counties <- c("Marsabit", "Wajir", "Isiolo", "Mandera", "Garissa")
+
+shp <- shp %>%
   mutate(
-    percentage = round(n / sum(n) * 100, 2)
-  ) %>%
-  arrange(desc(n)) %>%
-  flextable() %>%
-  autofit()
+    shade = ifelse(Name %in% highlight_counties,
+                   "Dark", "Light")
+  )
 
 ```
 
 ```{r}
-tb_county <- dat2 %>%
+ggplot() +
+  geom_sf(
+    data = shp,
+    aes(fill = shade),
+    color = "white",
+    linewidth = 0.2
+  ) +
+  geom_sf_text(
+    data = county_centroids,
+    aes(label = Name),
+    size = 2,
+    color = "black"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Light" = "grey85",  # base color for most counties
+      "Dark" = "grey60"    # slightly darker for the five counties
+    )
+  ) +
+  labs(
+    title = "Map Of Kenya Highlighting Nothern Counties",
+    fill = ""
+  ) +
+  theme_void() +
+  theme(
+    plot.background  = element_rect(fill = "aliceblue", color = NA),
+    panel.background = element_rect(fill = "aliceblue", color = NA)
+  )
+
+```
+
+
+```{r}
+library(dplyr)
+
+dat5 <- dat3 %>%
+  mutate(
+    covid_period = case_when(
+      Year < 2020 ~ "Pre-COVID",
+      Year >= 2020 ~ "Post-COVID"
+    )
+  )
+
+table(dat5$covid_period)
+
+```
+
+
+```{r}
+reporting_covid <- dat5 %>%
+  group_by(covid_period, County, `Health Facility`, Year, Month) %>%
+  summarise(records = n(), .groups = "drop")
+
+head(reporting_covid)
+
+```
+
+```{r}
+gender_county_covid <- dat5 %>%
+  filter(!is.na(Gender)) %>%
+  mutate(
+    covid_period = ifelse(Year < 2020, "Pre-COVID", "Post-COVID")
+  ) %>%
+  group_by(covid_period, County, Gender) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  tidyr::pivot_wider(
+    names_from = Gender,
+    values_from = n,
+    values_fill = 0
+  ) %>%
+  mutate(
+    F_to_M_ratio = ifelse(Male == 0, NA, Female / Male)
+  )
+
+
+```
+
+```{r}
+gender_county_covid %>% flextable()
+```
+
+
+```{r}
+
+gender_county_clean <- gender_county_covid %>%
+  filter(
+    !is.na(County),
+    County != "",
+    !(Female == 0 & Male == 1 & F_to_M_ratio == 0)
+  )
+
+```
+
+
+```{r}
+gender_county_clean <- gender_county_clean %>%
   group_by(County) %>%
-  summarise(TB_cases = n()) %>%
+  filter(n() == 2) %>%   # keeps counties with both periods
   ungroup()
 
 ```
 
 
 ```{r}
-library(rnaturalearth)
-library(rnaturalearthhires)
-library(viridis)
-library(sf)
+gender_county_presentable <- gender_county_clean %>%
+  arrange(County, covid_period) %>%
+  mutate(F_to_M_ratio = round(F_to_M_ratio, 2))
+
 ```
 
 
 ```{r}
-shape_file <- st_read("shapefiles/County.shp")
-  
-```
 
-```{r}
-head(shape_file)
-```
-
-```{r}
-kenya_tb <- shape_file %>%
-  left_join(tb_county, by = c("Name" = "County"))  # adjust column if shapefile uses different names
+gender_county_presentable %>% flextable()
 
 ```
 
 
 
-```{r}
-library(RColorBrewer)
 
-ggplot(kenya_tb) +
-  geom_sf(aes(fill = TB_cases), color = "white", linewidth = 0.2) +
-  scale_fill_distiller(palette = "YlOrRd", direction = 1, na.value = "grey90") +
-  labs(title = "Distribution of TB Cases by County in Kenya", fill = "TB Cases") +
+```{r}
+gender_change <- gender_county_presentable %>%
+  tidyr::pivot_wider(
+    names_from = covid_period,
+    values_from = F_to_M_ratio
+  ) %>%
+  mutate(change = `Post-COVID` - `Pre-COVID`)
+
+ggplot(gender_change,
+       aes(x = reorder(County, change), y = change)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Change in Female-to-Male Ratio After COVID-19",
+    x = "",
+    y = "Post − Pre Difference"
+  ) +
   theme_minimal()
-
-```
-
-
-```{r}
-dat3 <- dat2 %>%
-  mutate(
-    County = trimws(County),  # remove extra spaces
-    County = case_when(
-      County == "Tharaka Nithi" ~ "Tharaka-Nithi",
-      County == "Elgeyo Marakwet"  ~ "Elgeyo-Marakwet",
-      County == "Pokot" ~ "West Pokot",
-      TRUE ~ County
-    )
-  )
-```
-
-
-```{r}
-tb_by_county <- dat3 %>%
-  group_by(County) %>%
-  summarise(
-    TB_cases = n(),
-    .groups = "drop"
-  )
-
-```
-
-
-```{r}
-tb_join <- tb_by_county %>%
-  left_join(census_data %>%
-              select(County, Total_Population19), 
-            by = "County")
-
-```
-
-```{r}
-tb_calc <- tb_join %>%
-  mutate(
-    overall_percent = round(100 * TB_cases / sum(TB_cases), 2),
-    prevalence_per_100k = round((TB_cases / Total_Population19) * 1e5, 1)
-  )
-```
-
-```{r}
-tb_calc %>%
-  select(
-    County,
-    Total_Population19,
-    TB_cases,
-    overall_percent,
-    prevalence_per_100k
-  ) %>%
-  arrange(desc(TB_cases)) %>%
-  flextable() %>%
-  autofit()
-```
-
-
-```{r}
-library(ggplot2)
-library(viridis)  # optional, or you can use RColorBrewer
-
-ggplot(tb_by_county, aes(x = TB_cases, y = reorder(County, TB_cases))) +
-  geom_col(fill = "steelblue") +                       # TB cases bars
-  geom_text(aes(label = TB_cases), hjust = -0.1, size = 3) + # labels
-  labs(
-    title = "TB Cases by County in Kenya",
-    x = "Number of TB Cases",
-    y = "County"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    axis.text.y = element_text(size = 10),
-    plot.title = element_text(face = "bold")
-  )
-
-```
-
-
-```{r}
-
-tb_by_sex <- dat2 %>%
-  group_by(County, Gender) %>%
-  summarise(TB_cases = n(), .groups = "drop")
-
-
-```
-
-```{r}
-tb_sex_wide <- tb_by_sex %>%
-  tidyr::pivot_wider(
-    names_from = Gender,
-    values_from = TB_cases,
-    values_fill = 0
-  )
-
-```
-
-
-```{r}
-tb_sex_wide <- tb_sex_wide %>%
-  mutate(
-    F_to_M_ratio = round(Female / Male, 2)
-  )
-
-```
-
-
-```{r}
-tb_sex_wide %>%
-  select(County, Female, Male, F_to_M_ratio) %>%
-  arrange(desc(F_to_M_ratio)) %>%
-  flextable() %>%
-  autofit()
-
-```
-
-
-```{r}
-ggplot(tb_by_sex, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
-  geom_col(position = position_dodge(width = 0.9)) +
-  geom_text(aes(label = TB_cases),
-            position = position_dodge(width = 0.9),
-            hjust = -0.1, size = 3) +
-  labs(
-    title = "TB Cases by County and Gender",
-    x = "Number of TB Cases",
-    y = "County",
-    fill = "Gender"
-  ) +
-  scale_fill_manual(values = c("steelblue", "salmon")) +
-  theme_minimal() +
-  theme(
-    axis.text.y = element_text(size = 10),
-    plot.title = element_text(face = "bold")
-  ) +
-  expand_limits(x = max(tb_by_sex$TB_cases) * 1.1)  # gives space for labels
-
-```
-
-
-```{r}
-tb_sex_wide <- tb_by_sex %>%
-  tidyr::pivot_wider(
-    names_from = Gender,
-    values_from = TB_cases,
-    values_fill = 0
-  ) %>%
-  mutate(
-    F_to_M_ratio = round(Female / Male, 2)
-  )
-
-```
-
-
-```{r}
-tb_sex_long <- tb_sex_wide %>%
-  tidyr::pivot_longer(cols = c(Female, Male),
-                      names_to = "Gender",
-                      values_to = "TB_cases") %>%
-  mutate(Gender = factor(Gender, levels = c("Male", "Female")))
-
-```
-
-```{r}
-library(ggplot2)
-
-ggplot(tb_sex_long, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
-  geom_col(position = position_dodge(width = 0.8)) +       # side-by-side bars
-  geom_text(
-    data = tb_sex_wide,
-    aes(x = pmax(Female, Male) + 5, y = County, label = paste0("F:M=", F_to_M_ratio)),
-    inherit.aes = FALSE,
-    size = 3
-  ) +
-  scale_fill_manual(values = c("steelblue", "salmon")) +
-  labs(
-    title = "TB Cases by County and Gender with F:M Ratio",
-    x = "Number of TB Cases",
-    y = "County",
-    fill = "Gender"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    axis.text.y = element_text(size = 10),
-    plot.title = element_text(face = "bold")
-  )
-
-```
-
-
-```{r}
-ggplot(tb_sex_long, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
-  geom_col(position = "stack") +  # stack the bars
-  geom_text(
-    data = tb_sex_wide,
-    aes(x = Female + Male + 100, y = County, label = paste0("F:M=", F_to_M_ratio)),
-    inherit.aes = FALSE,
-    size = 3
-  ) +
-  scale_fill_manual(values = c("steelblue", "orange")) +
-  labs(
-    title = "Reported Cases of Tuberculosis Stratified by Gender",
-    x = "Number of TB Cases",
-    y = NULL,
-    fill = "Gender"
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    axis.text.y = element_text(size = 10),
-    plot.title = element_text(face = "bold")
-  )
-
-```
-
-```{r}
-
-
-# Count number of records per Health Facility per Month
-reporting_summary <- dat3 %>%
-  group_by(County, `Sub County`, `Health Facility`, Year, Month) %>%
-  summarise(records = n(), .groups = 'drop') %>%
-  arrange(County, `Sub County`, `Health Facility`, Year, Month)
-
-# View summary
-head(reporting_summary)
-
-# Optional: Check missing months per facility
-library(tidyr)
-facility_months <- reporting_summary %>%
-  complete(`Health Facility`, Month, fill = list(records = 0)) %>%
-  group_by(`Health Facility`) %>%
-  summarise(missing_months = sum(records == 0), .groups = 'drop')
-
-facility_months
-
 
 ```
 
