@@ -235,169 +235,135 @@ tb_calc %>%
 
 ```{r}
 library(ggplot2)
-> library(viridis)  # optional, or you can use RColorBrewer
-> 
-> ggplot(tb_by_county, aes(x = TB_cases, y = reorder(County, TB_cases))) +
-+   geom_col(fill = "steelblue") +                       # TB cases bars
-+   geom_text(aes(label = TB_cases), hjust = -0.1, size = 3) + # labels
-+   labs(
-+     title = "TB Cases by County in Kenya",
-+     x = "Number of TB Cases",
-+     y = "County"
-+   ) +
-+   theme_minimal(base_size = 12) +
-+   theme(
-+     axis.text.y = element_text(size = 10),
-+     plot.title = element_text(face = "bold")
-+   )
+
+ggplot(
+  tb_by_county,
+  aes(
+    x = TB_cases,
+    y = reorder(County, TB_cases)
+  )
+) +
+  geom_col(fill = "steelblue", width = 0.7) +
+  geom_text(
+    aes(label = scales::comma(TB_cases)),
+    hjust = -0.1,
+    size = 3
+  ) +
+  labs(
+    title = "Tuberculosis (TB) Cases by County, Kenya",
+    subtitle = "Count of reported TB cases",
+    x = "Number of TB Cases",
+    y = "County"
+  ) +
+  scale_x_continuous(
+    labels = scales::comma,
+    expand = expansion(mult = c(0, 0.15))  # space for labels
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.y = element_text(size = 10),
+    axis.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 11),
+    panel.grid.major.y = element_blank()
+  )
+
 
 ```
 
 ```{r}
+
 tb_by_sex <- dat2 %>%
-+   group_by(County, Gender) %>%
-+   summarise(TB_cases = n(), .groups = "drop")
+  group_by(County, Gender) %>%
+  summarise(
+    TB_cases = n(),
+    .groups = "drop"
+  )
+
 
 ```
+
 
 ```{r}
 tb_sex_wide <- tb_by_sex %>%
-+   tidyr::pivot_wider(
-+     names_from = Gender,
-+     values_from = TB_cases,
-+     values_fill = 0
-+   )
+  tidyr::pivot_wider(
+    names_from = Gender,
+    values_from = TB_cases,
+    values_fill = 0
+  )
+
 ```
+
 
 ```{r}
 tb_sex_wide <- tb_sex_wide %>%
-+   mutate(
-+     F_to_M_ratio = round(Female / Male, 2)
-+   )
+  mutate(
+    F_to_M_ratio = round(
+      ifelse(Male == 0, NA, Female / Male),
+      2
+    )
+  )
 
 ```
 
 ```{r}
 tb_sex_wide %>%
-+   select(County, Female, Male, F_to_M_ratio) %>%
-+   arrange(desc(F_to_M_ratio)) %>%
-+   flextable() %>%
-+   autofit()
+  select(County, Female, Male, F_to_M_ratio) %>%
+  arrange(desc(F_to_M_ratio)) %>%
+  flextable() %>%
+  autofit()
 
 ```
 
-```{r}
-ggplot(tb_by_sex, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
-+   geom_col(position = position_dodge(width = 0.9)) +
-+   geom_text(aes(label = TB_cases),
-+             position = position_dodge(width = 0.9),
-+             hjust = -0.1, size = 3) +
-+   labs(
-+     title = "TB Cases by County and Gender",
-+     x = "Number of TB Cases",
-+     y = "County",
-+     fill = "Gender"
-+   ) +
-+   scale_fill_manual(values = c("steelblue", "salmon")) +
-+   theme_minimal() +
-+   theme(
-+     axis.text.y = element_text(size = 10),
-+     plot.title = element_text(face = "bold")
-+   ) +
-+   expand_limits(x = max(tb_by_sex$TB_cases) * 1.1)
 
-```
-
-```{r}
-tb_sex_wide <- tb_by_sex %>%
-+   tidyr::pivot_wider(
-+     names_from = Gender,
-+     values_from = TB_cases,
-+     values_fill = 0
-+   ) %>%
-+   mutate(
-+     F_to_M_ratio = round(Female / Male, 2)
-+   )
-
-```
-
-```{r}
-tb_sex_long <- tb_sex_wide %>%
-+   tidyr::pivot_longer(cols = c(Female, Male),
-+                       names_to = "Gender",
-+                       values_to = "TB_cases") %>%
-+   mutate(Gender = factor(Gender, levels = c("Male", "Female")))
-
-```
-
-```{r}
-ggplot(tb_sex_long, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
-+   geom_col(position = position_dodge(width = 0.8)) +       # side-by-side bars
-+   geom_text(
-+     data = tb_sex_wide,
-+     aes(x = pmax(Female, Male) + 5, y = County, label = paste0("F:M=", F_to_M_ratio)),
-+     inherit.aes = FALSE,
-+     size = 3
-+   ) +
-+   scale_fill_manual(values = c("steelblue", "salmon")) +
-+   labs(
-+     title = "TB Cases by County and Gender with F:M Ratio",
-+     x = "Number of TB Cases",
-+     y = "County",
-+     fill = "Gender"
-+   ) +
-+   theme_minimal(base_size = 12) +
-+   theme(
-+     axis.text.y = element_text(size = 10),
-+     plot.title = element_text(face = "bold")
-+   )
-
-```
 
 
 ```{r}
-ggplot(tb_sex_long, aes(x = TB_cases, y = reorder(County, TB_cases), fill = Gender)) +
-+   geom_col(position = "stack") +  # stack the bars
-+   geom_text(
-+     data = tb_sex_wide,
-+     aes(x = Female + Male + 100, y = County, label = paste0("F:M=", F_to_M_ratio)),
-+     inherit.aes = FALSE,
-+     size = 3
-+   ) +
-+   scale_fill_manual(values = c("steelblue", "orange")) +
-+   labs(
-+     title = "Reported Cases of Tuberculosis Stratified by Gender",
-+     x = "Number of TB Cases",
-+     y = NULL,
-+     fill = "Gender"
-+   ) +
-+   theme_minimal(base_size = 12) +
-+   theme(
-+     axis.text.y = element_text(size = 10),
-+     plot.title = element_text(face = "bold")
-+   )
+ggplot(
+  tb_by_sex,
+  aes(
+    x = TB_cases,
+    y = reorder(County, TB_cases),
+    fill = Gender
+  )
+) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  geom_text(
+    aes(label = TB_cases),
+    position = position_dodge(width = 0.8),
+    hjust = -0.15,
+    size = 3
+  ) +
+  labs(
+    title = "TB Cases by County and Gender",
+    subtitle = "Comparison of male and female TB burden by county",
+    x = "Number of TB Cases",
+    y = "County",
+    fill = "Gender"
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Female" = "salmon",
+      "Male" = "steelblue"
+    )
+  ) +
+  scale_x_continuous(
+    expand = expansion(mult = c(0, 0.2))
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.y = element_text(size = 10),
+    axis.title = element_text(face = "bold"),
+    plot.title = element_text(face = "bold", size = 14),
+    plot.subtitle = element_text(size = 11),
+    panel.grid.major.y = element_blank()
+  )
 
 ```
 
-```{r}
-reporting_summary <- dat3 %>%
-+   group_by(County, `Sub County`, `Health Facility`, Year, Month) %>%
-+   summarise(records = n(), .groups = 'drop') %>%
-+   arrange(County, `Sub County`, `Health Facility`, Year, Month)
 
-```
 
-```{r}
-head(reporting_summary)
-```
 
-```{r}
-facility_months <- reporting_summary %>%
-+   complete(`Health Facility`, Month, fill = list(records = 0)) %>%
-+   group_by(`Health Facility`) %>%
-+   summarise(missing_months = sum(records == 0), .groups = 'drop')
-
-```
 
 
 ```{r}
