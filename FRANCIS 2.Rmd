@@ -127,7 +127,7 @@ library(rnaturalearth)
 library(rnaturalearthhires)
 library(viridis)
 library(RColorBrewer)
-
+library(sf)
 ```
 
 
@@ -152,56 +152,86 @@ ggplot(kenya_tb) +
 
 ```{r, standardise the 3 counties}
 dat3 <- dat2 %>%
-+   mutate(
-+     County = trimws(County),  # remove extra spaces
-+     County = case_when(
-+       County == "Tharaka Nithi" ~ "Tharaka-Nithi",
-+       County == "Elgeyo Marakwet"  ~ "Elgeyo-Marakwet",
-+       County == "Pokot" ~ "West Pokot",
-+       TRUE ~ County
-+     )
-+   )
+  mutate(
+    County = trimws(County),  # remove extra spaces
+    County = case_when(
+      County == "Tharaka Nithi"     ~ "Tharaka-Nithi",
+      County == "Elgeyo Marakwet"   ~ "Elgeyo-Marakwet",
+      County == "Pokot"             ~ "West Pokot",
+      TRUE ~ County
+    )
+  )
+
+
 ```
 
 ```{r}
 tb_by_county <- dat3 %>%
-+   group_by(County) %>%
-+   summarise(
-+     TB_cases = n(),
-+     .groups = "drop"
-+   )
+  group_by(County) %>%
+  summarise(
+    TB_cases = n(),
+    .groups = "drop"
+  )
 
 ```
 
 ```{r, join}
 tb_join <- tb_by_county %>%
-+   left_join(census_data %>%
-+               select(County, Total_Population19), 
-+             by = "County")
+  left_join(
+    census_data %>% select(County, Total_Population19),
+    by = "County"
+  )
+
+
 ```
 
 ```{r}
 tb_calc <- tb_join %>%
-+   mutate(
-+     overall_percent = round(100 * TB_cases / sum(TB_cases), 2),
-+     prevalence_per_100k = round((TB_cases / Total_Population19) * 1e5, 1)
-+   )
+  mutate(
+    overall_percent = round(100 * TB_cases / sum(TB_cases), 2),
+    prevalence_per_100k = round((TB_cases / Total_Population19) * 1e5, 1)
+  )
+
+
 ```
 
 ```{r}
 tb_calc %>%
-+   select(
-+     County,
-+     Total_Population19,
-+     TB_cases,
-+     overall_percent,
-+     prevalence_per_100k
-+   ) %>%
-+   arrange(desc(TB_cases)) %>%
-+   flextable() %>%
-+   autofit()
+  select(County, Total_Population19, TB_cases, overall_percent, prevalence_per_100k) %>%
+  arrange(desc(TB_cases)) %>%
+  flextable() %>%
+  colformat_num(j = c("Total_Population19", "TB_cases"), big.mark = ",") %>%
+  colformat_num(j = c("overall_percent", "prevalence_per_100k"), digits = 1) %>%
+  autofit()
+
 
 ```
+
+
+```{r}
+tb_calc %>%
+  select(
+    County,
+    Total_Population19,
+    TB_cases,
+    overall_percent,
+    prevalence_per_100k
+  ) %>%
+  arrange(desc(TB_cases)) %>%
+  flextable() %>%
+  set_header_labels(
+    County = "County",
+    Total_Population19 = "Population (2019)",
+    TB_cases = "TB Cases",
+    overall_percent = "Overall (%)",
+    prevalence_per_100k = "Prevalence / 100,000"
+  ) %>%
+  autofit()
+
+
+```
+
+
 
 ```{r}
 library(ggplot2)
