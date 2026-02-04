@@ -157,4 +157,103 @@ africa %>%
 
 ```
 
+```{r}
+Sys.setenv(SHAPE_RESTORE_SHX = "YES")
+
+```
+
+
+```{r}
+library(sf)
+africa_shape <- st_read("Africa Shape/afr_g2014_2013_0.shp")
+
+```
+
+```{r}
+library(dplyr)
+
+lang_by_country <- africa %>%
+  count(country, name = "n_languages") %>%
+  # Fix names to match shapefile
+  mutate(country = case_when(
+    country == "Ivory Coast" ~ "C\xf4te d'Ivoire",
+    country == "DR Congo" ~ "Democratic Republic of the Congo",
+    country == "Tanzania" ~ "United Republic of Tanzania",
+    country == "Cape Verde" ~ "Cape Verde",
+    TRUE ~ country
+  ))
+
+
+```
+
+```{r}
+africa_map_data <- africa_shape %>%
+  left_join(lang_by_country, by = c("ADM0_NAME" = "country"))
+
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(africa_map_data) +
+  geom_sf(aes(fill = n_languages), color = "white", linewidth = 0.2) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    na.value = "grey90"
+  ) +
+  labs(
+    title = "Number of Spoken Languages by Country in Africa",
+    subtitle = "Based on documented languages in the dataset",
+    fill = "Languages"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+ggplot(africa_map_data) +
+  geom_sf(aes(fill = n_languages), color = "white", linewidth = 0.2) +
+  scale_fill_gradient(
+    low = "lightgreen",
+    high = "darkgreen",
+    na.value = "grey90"
+  ) +
+  labs(
+    title = "Number of Spoken Languages by Country in Africa",
+    subtitle = "Based on documented languages in the dataset",
+    fill = "Languages"
+  ) +
+  theme_minimal()
+
+
+```
+
+
+```{r}
+library(dplyr)
+library(sf)
+
+lang_map_data <- africa %>%
+  left_join(
+    africa_centroids %>% select(ADM0_NAME, geometry),  # keep geometry
+    by = c("country" = "ADM0_NAME")
+  ) %>%
+  st_as_sf()
+
+```
+
+```{r}
+library(ggplot2)
+
+ggplot() +
+  geom_sf(data = africa_map_data, fill = "lightgreen", color = "white", linewidth = 0.2) +
+  geom_sf(data = lang_map_data, aes(color = family), size = 2, alpha = 0.7) +
+  labs(
+    title = "Languages Across African Countries",
+    subtitle = "Each point represents a language in its country",
+    color = "Language Family"
+  ) +
+  theme_minimal()
+
+```
 
