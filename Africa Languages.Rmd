@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidytuesdayR)
+library(dplyr)
+library(flextable)
 
 ```
 
@@ -21,4 +23,138 @@ tuesdata <- tidytuesdayR::tt_load(2026, week = 2)
 
 africa <- tuesdata$africa
 ```
+
+```{r}
+africa %>%
+  summarise(
+    min = min(native_speakers, na.rm = TRUE),
+    max = max(native_speakers, na.rm = TRUE),
+    mean = mean(native_speakers, na.rm = TRUE),
+    median = median(native_speakers, na.rm = TRUE),
+    sd = sd(native_speakers, na.rm = TRUE)
+  ) %>%
+  flextable()
+
+
+```
+
+```{r}
+africa %>%
+  mutate(log_speakers = log10(native_speakers)) %>%
+  summarise(
+    mean_log = mean(log_speakers),
+    median_log = median(log_speakers)
+  ) %>%
+  flextable()
+
+
+```
+
+
+```{r}
+boxplot(log10(africa$native_speakers),
+        main = "Log Distribution of Native Speakers",
+        ylab = "Log10(Native Speakers)")
+
+
+```
+
+```{r}
+africa %>%
+  count(family, sort = TRUE) %>%
+  flextable()
+```
+
+```{r}
+africa %>%
+  count(country, sort = TRUE) %>%
+  flextable()
+
+```
+
+```{r}
+africa %>%
+  group_by(family) %>%
+  summarise(
+    total_speakers = sum(native_speakers, na.rm = TRUE),
+    mean_speakers = mean(native_speakers, na.rm = TRUE),
+    n_languages = n()
+  ) %>%
+  arrange(desc(total_speakers)) %>%
+  flextable()
+
+```
+
+
+```{r}
+hist(log10(africa$native_speakers),
+     main = "Log Distribution of Native Speakers",
+     xlab = "Log10(Native Speakers)")
+
+```
+
+```{r}
+africa %>%
+  count(country, family) %>%
+  group_by(country) %>%
+  mutate(prop = n / sum(n)) %>%
+  flextable()
+
+```
+
+```{r,Top 10 African Countries by Number of Spoken Languages}
+library(dplyr)
+library(ggplot2)
+
+africa %>%
+  count(country, sort = TRUE) %>%
+  slice_head(n = 10) %>%
+  ggplot(aes(x = n, y = reorder(country, n))) +
+  geom_col(fill = "steelblue") +
+  labs(
+    title = "Top 10 African Countries by Number of Spoken Languages",
+    x = "Number of Languages",
+    y = "Country"
+  ) +
+  theme_minimal()
+
+```
+
+```{r,Total Native Speakers by Language Family (Log Scale)}
+africa %>%
+  group_by(family) %>%
+  summarise(total_speakers = sum(native_speakers, na.rm = TRUE)) %>%
+  arrange(desc(total_speakers)) %>%
+  ggplot(aes(x = reorder(family, total_speakers), y = total_speakers)) +
+  geom_col(fill = "darkorange") +
+  scale_y_log10() +
+  coord_flip() +
+  labs(
+    title = "Total Native Speakers by Language Family (Log Scale)",
+    x = "Language Family",
+    y = "Total Native Speakers (log scale)"
+  ) +
+  theme_minimal()
+
+```
+
+
+```{r}
+africa %>%
+  group_by(language) %>%
+  summarise(n_countries = n_distinct(country)) %>%
+  filter(n_countries > 1) %>%
+  arrange(desc(n_countries)) %>%
+  slice_head(n = 15) %>%
+  ggplot(aes(x = n_countries, y = reorder(language, n_countries))) +
+  geom_col(fill = "purple") +
+  labs(
+    title = "Languages Spoken Across Multiple African Countries",
+    x = "Number of Countries",
+    y = "Language"
+  ) +
+  theme_minimal()
+
+```
+
 
