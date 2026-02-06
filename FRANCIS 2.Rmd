@@ -1,5 +1,5 @@
 ---
-title: "Northern Mapping"
+title: "Effects of the COVID-19 Pandemic on Tuberculosis (TB) in Kenya"
 author: "Bonsoul"
 date: "`r Sys.Date()`"
 output: html_document
