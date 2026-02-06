@@ -695,3 +695,190 @@ ggplot(covid_outcomes, aes(x = covid_period, y = percent, fill = outcome)) +
 ```
 
 
+
+```{r, mortality plot}
+
+theme_tb <- theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.title = element_text(size = 13),
+    legend.title = element_text(face = "bold"),
+    legend.position = "bottom"
+  )
+
+```
+
+
+```{r}
+p_death <- ggplot(death_year, aes(x = Year, y = n)) +
+  geom_line(size = 1.3, color = "#B03A2E") +
+  geom_point(size = 3, color = "#B03A2E") +
+  geom_vline(xintercept = 2020, linetype = "dashed", color = "grey40") +
+  labs(
+    title = "TB Mortality Trend by Year",
+    x = "Year",
+    y = "Number of Deaths"
+  ) +
+  theme_tb
+
+p_death
+
+```
+
+
+```{r}
+ggsave("TB_Mortality_Trend.png", p_death,
+       width = 8, height = 5, dpi = 300)
+
+```
+
+
+```{r}
+dat6 <- dat6 %>%
+  mutate(died = if_else(outcome == "Died", 1, 0))
+
+```
+
+```{r, mortality by age group}
+# Create age groups
+dat7 <- dat6 %>%
+  mutate(age_group = case_when(
+    `Date of Registration` < 15 ~ "<15",
+    `Date of Registration` >= 15 & `Date of Registration` < 30 ~ "15-29",
+    `Date of Registration` >= 30 & `Date of Registration` < 45 ~ "30-44",
+    `Date of Registration` >= 45 & `Date of Registration` < 60 ~ "45-59",
+    `Date of Registration` >= 60 ~ "60+",
+    TRUE ~ NA_character_
+  ))
+```
+
+
+```{r}
+age_gender_death <- dat7 %>%
+  group_by(age_group, Gender) %>%
+  summarise(deaths = sum(died, na.rm = TRUE),
+            total = n(),
+            mortality_rate = round(100*deaths/total,1),
+            .groups = "drop")
+```
+
+```{r}
+age_gender_death %>% flextable()
+
+```
+
+
+```{r}
+ggplot(age_gender_death, aes(x = age_group, y = mortality_rate, fill = Gender)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Mortality Rate by Age Group and Gender",
+    x = "Age Group",
+    y = "Mortality Rate (%)",
+    fill = "Gender"
+  ) +
+  theme_minimal(base_size = 14)
+```
+
+
+```{r}
+dat8 <- dat8 %>%
+  mutate(
+    # Convert to proper Date first
+    DateReg = as.Date(`Date of Registration`, format = "%d-%b-%y"),
+    # Then create month column
+    month = floor_date(DateReg, "month")
+  )
+
+```
+
+```{r}
+monthly_deaths <- dat8 %>%
+  group_by(month) %>%
+  summarise(deaths = sum(died, na.rm = TRUE), .groups = "drop")
+
+```
+
+```{r}
+monthly_deaths %>% flextable()
+```
+
+```{r, bar plot}
+
+ggplot(monthly_deaths, aes(x = month, y = deaths)) +
+  geom_col(fill = "#C0392B") +
+  geom_vline(xintercept = as.Date("2020-03-01"), linetype = "dashed", color = "grey40") +
+  annotate("text", x = as.Date("2020-03-01"), y = max(monthly_deaths$deaths),
+           label = "COVID onset", hjust = -0.1, vjust = -0.5, size = 4) +
+  labs(
+    title = "Monthly TB Deaths (Bar Plot)",
+    x = "Month",
+    y = "Number of Deaths"
+  ) +
+  theme_minimal(base_size = 14) +
+  scale_x_date(date_labels = "%b-%Y", date_breaks = "2 months") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+
+```{r}
+ggplot(monthly_deaths, aes(x = month, y = deaths)) +
+  geom_line(color = "#C0392B", size = 1.2) +
+  geom_point(color = "#C0392B", size = 2) +
+  geom_vline(xintercept = as.Date("2020-03-01"), linetype = "dashed", color = "grey40") +
+  annotate("text", x = as.Date("2020-03-01"), y = max(monthly_deaths$deaths),
+           label = "COVID onset", hjust = -0.1, size = 4) +
+  labs(
+    title = "Monthly TB Deaths (Interrupted Time Series)",
+    x = "Month",
+    y = "Number of Deaths"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+```
+
+##Case fatality per 100,000 TB cases
+
+
+```{r, Case fatality per 100,000 TB cases}
+abs_deaths <- dat8 %>%
+  group_by(age_group, Gender) %>%
+  summarise(
+    deaths = sum(died, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+abs_deaths %>% flextable()
+
+```
+
+```{r}
+cfr_age_gender <- dat8 %>%
+  group_by(age_group, Gender) %>%
+  summarise(
+    deaths = sum(died, na.rm = TRUE),
+    tb_cases = n(),
+    case_fatality_100k = round((deaths / tb_cases) * 100000, 1),
+    .groups = "drop"
+  )
+
+cfr_age_gender %>% flextable()
+
+```
+
+
+```{r}
+ggplot(cfr_age_gender,
+       aes(x = age_group, y = case_fatality_100k, fill = Gender)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "TB Case Fatality per 100,000 Cases",
+    x = "Age Group",
+    y = "Deaths per 100,000 TB Cases",
+    fill = "Gender"
+  ) +
+  theme_minimal(base_size = 14)
+
+```
