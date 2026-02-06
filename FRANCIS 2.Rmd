@@ -615,4 +615,83 @@ ggplot(death_year, aes(x = Year, y = n)) +
 
 ```
 
+```{r}
+outcome_year <- dat6 %>%
+  group_by(Year, outcome) %>%
+  summarise(cases = n(), .groups = "drop")
+
+```
+
+```{r,TB Treatment Outcomes by Year}
+ggplot(outcome_year, aes(x = factor(Year), y = cases, fill = outcome)) +
+  geom_col(width = 0.8) +
+  labs(
+    title = "TB Treatment Outcomes by Year",
+    x = "Year",
+    y = "Number of Patients",
+    fill = "Outcome"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+```
+
+```{r,Treatment Success Rate (Cured + Treatment Completed)}
+success_year <- dat6 %>%
+  filter(outcome %in% c("Cured", "Treatment completed", 
+                        "Died", "Failed", "Lost to follow-up", "Transferred out")) %>%
+  mutate(
+    success = if_else(outcome %in% c("Cured", "Treatment completed"), 1, 0)
+  ) %>%
+  group_by(Year) %>%
+  summarise(
+    total = n(),
+    success_rate = round(100 * mean(success), 1),
+    .groups = "drop"
+  )
+
+```
+
+```{r}
+ggplot(success_year, aes(x = Year, y = success_rate)) +
+  geom_line(size = 1.2, color = "#1E8449") +
+  geom_point(size = 3, color = "#1E8449") +
+  geom_hline(yintercept = 90, linetype = "dotted", color = "grey40") +
+  labs(
+    title = "TB Treatment Success Rate by Year",
+    x = "Year",
+    y = "Success Rate (%)"
+  ) +
+  theme_minimal(base_size = 13)
+
+```
+
+
+```{r}
+covid_outcomes <- dat6 %>%
+  filter(outcome %in% c("Cured", "Treatment completed", 
+                        "Died", "Failed", "Lost to follow-up", "Transferred out")) %>%
+  group_by(covid_period, outcome) %>%
+  summarise(cases = n(), .groups = "drop") %>%
+  group_by(covid_period) %>%
+  mutate(percent = round(100 * cases / sum(cases), 1)) %>%
+  ungroup()
+
+```
+
+```{r}
+ggplot(covid_outcomes, aes(x = covid_period, y = percent, fill = outcome)) +
+  geom_col(width = 0.6) +
+  labs(
+    title = "TB Treatment Outcomes: Pre- vs Post-COVID",
+    x = "",
+    y = "Percentage of Patients",
+    fill = "Outcome"
+  ) +
+  theme_minimal(base_size = 13)
+
+```
+
 
