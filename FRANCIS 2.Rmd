@@ -367,8 +367,7 @@ ggplot(
 
 
 
-```{r}
-library(dplyr)
+```{r, pre and post covid}
 
 dat5 <- dat3 %>%
   mutate(
@@ -384,6 +383,53 @@ table(dat5$covid_period)
 
 
 ```{r}
+dat5_summary <- dat5 %>%
+  group_by(Year, covid_period) %>%
+  summarise(n = n(), .groups = "drop")
+```
+
+```{r}
+
+dat5_summary %>% flextable()
+
+```
+
+```{r}
+ggplot(dat5_summary, aes(x = Year, y = n, color = covid_period)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  labs(
+    title = "Trend Over Time by COVID Period",
+    x = "Year",
+    y = "Number of Records",
+    color = "Period"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+year_counts <- dat5 %>%
+  count(Year)
+
+ggplot(year_counts, aes(x = Year, y = n)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  geom_vline(xintercept = 2020, linetype = "dashed") +
+  annotate("text", x = 2020, y = max(year_counts$n),
+           label = "COVID starts", hjust = -0.1) +
+  theme_minimal() +
+  labs(
+    title = "Time Trend with COVID Period Marker",
+    x = "Year",
+    y = "Number of Records"
+  )
+
+```
+
+
+
+```{r}
 tb_cases_covid <- dat5 %>%
   group_by(County, covid_period) %>%
   summarise(TB_cases = n(), .groups = "drop")
@@ -391,24 +437,10 @@ tb_cases_covid <- dat5 %>%
 ```
 
 
-```{r}
-tb_cases_covid <- tb_cases_covid %>%
-  left_join(county_pop, by = "County")
-
-```
 
 
 
-```{r}
-reporting_covid <- dat5 %>%
-  group_by(covid_period, County, `Health Facility`, Year, Month) %>%
-  summarise(records = n(), .groups = "drop")
-
-head(reporting_covid)
-
-```
-
-```{r}
+```{r,gender analysis}
 gender_county_covid <- dat5 %>%
   filter(!is.na(Gender)) %>%
   mutate(
@@ -491,4 +523,96 @@ ggplot(gender_change,
   theme_minimal()
 
 ```
+
+
+##Objective 2
+
+
+```{r}
+library(dplyr)
+
+dat6 <- dat5 %>%
+  mutate(
+    outcome = case_when(
+      `Treatment Outcome` == "C"    ~ "Cured",
+      `Treatment Outcome` == "TC"   ~ "Treatment completed",
+      `Treatment Outcome` == "D"    ~ "Died",
+      `Treatment Outcome` == "LTFU" ~ "Lost to follow-up",
+      `Treatment Outcome` == "F"    ~ "Failed",
+      `Treatment Outcome` == "TO"   ~ "Transferred out",
+      `Treatment Outcome` %in% c("NC", "MT4") ~ "Not evaluated",
+      is.na(`Treatment Outcome`) ~ "Missing",
+      TRUE ~ "Other"
+    )
+  )
+
+table(dat6$outcome)
+
+```
+
+
+```{r}
+tb_outcome_year <- dat6 %>%
+  group_by(Year, outcome) %>%
+  summarise(
+    cases = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(Year, outcome)
+
+tb_outcome_year %>% flextable()
+
+```
+
+```{r}
+tb_outcome_year <- tb_outcome_year %>%
+  group_by(Year) %>%
+  mutate(
+    total_year = sum(cases),
+    percent = round(100 * cases / total_year, 1)
+  ) %>%
+  ungroup()
+
+```
+
+
+```{r, table for treatment outcome from 2017 to 2022}
+
+tb_outcome_year_wide <- tb_outcome_year %>%
+  select(Year, outcome, cases) %>%
+  pivot_wider(
+    names_from = outcome,
+    values_from = cases,
+    values_fill = 0
+  )
+
+tb_outcome_year_wide %>% flextable()
+
+```
+
+
+```{r, Mortality Analysis}
+
+death_year <- dat6 %>%
+  filter(outcome == "Died") %>%
+  count(Year)
+
+```
+
+```{r}
+ggplot(death_year, aes(x = Year, y = n)) +
+  geom_line(size = 1.2, color = "#C0392B") +
+  geom_point(size = 3, color = "#C0392B") +
+  geom_vline(xintercept = 2020, linetype = "dashed", color = "grey40") +
+  annotate("text", x = 2020, y = max(death_year$n),
+           label = "COVID onset", hjust = -0.1, size = 4) +
+  labs(
+    title = "TB Mortality Trend by Year",
+    x = "Year",
+    y = "Number of Deaths"
+  ) +
+  theme_minimal(base_size = 13)
+
+```
+
 
