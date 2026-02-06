@@ -15,12 +15,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
-
-```
-
-```{r}
 library(flextable)
 library(dlookr)
+library(knitr)
+library(kableExtra)
 
 ```
 
@@ -235,7 +233,7 @@ tb_calc %>%
 
 
 ```{r}
-library(ggplot2)
+
 
 ggplot(
   tb_by_county,
@@ -307,12 +305,28 @@ tb_sex_wide <- tb_sex_wide %>%
 
 ```
 
-```{r}
+
+
+```{r, Dender ratio to county}
+
 tb_sex_wide %>%
   select(County, Female, Male, F_to_M_ratio) %>%
+  filter(!is.na(F_to_M_ratio)) %>%          # remove rows where F_to_M_ratio is NA
   arrange(desc(F_to_M_ratio)) %>%
-  flextable() %>%
-  autofit()
+  mutate(
+    Female = round(Female, 0),
+    Male = round(Male, 0),
+    F_to_M_ratio = round(F_to_M_ratio, 2)
+  ) %>%
+  kable(
+    col.names = c("County", "Female TB cases", "Male TB cases", "F:M Ratio"),
+    caption = "TB Cases by Gender and Female-to-Male Ratio by County (NAs removed)"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  )
 
 ```
 
@@ -882,3 +896,243 @@ ggplot(cfr_age_gender,
   theme_minimal(base_size = 14)
 
 ```
+
+
+## TB Treatment Follow-up Outcomes Before, During, and After COVID-19
+
+
+```{r}
+tb_outcomes_period <- dat8 %>%
+  mutate(
+    period = case_when(
+      DateReg < as.Date("2020-03-01") ~ "Pre-COVID",
+      DateReg >= as.Date("2020-03-01") & DateReg <= as.Date("2021-12-31") ~ "COVID",
+      DateReg >= as.Date("2022-01-01") ~ "Post-COVID",
+      TRUE ~ NA_character_
+    )
+  ) %>%
+  filter(!is.na(period))
+
+
+```
+
+
+```{r}
+tb_outcomes_period <- tb_outcomes_period %>%
+  mutate(
+    followup_outcome = case_when(
+      `Treatment Outcome` %in% c("C", "TC") ~ "Treatment success",
+      `Treatment Outcome` == "LTFU" ~ "Lost to follow-up",
+      `Treatment Outcome` == "D" ~ "Died",
+      `Treatment Outcome` == "F" ~ "Failed",
+      TRUE ~ "Other"
+    )
+  )
+
+```
+
+```{r}
+tb_summary_period <- tb_outcomes_period %>%
+  group_by(period, followup_outcome) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(period) %>%
+  mutate(percent = n / sum(n) * 100)
+
+tb_summary_period %>% flextable()
+
+
+```
+
+```{r}
+ggplot(tb_summary_period,
+       aes(x = period, y = percent, fill = followup_outcome)) +
+  geom_col(width = 0.7) +
+  labs(
+    title = "TB Treatment Follow-up Outcomes Before, During, and After COVID-19",
+    x = "Period",
+    y = "Percentage of patients",
+    fill = "Outcome"
+  ) +
+  theme_minimal(base_size = 14)
+
+```
+
+```{r}
+completion_rate <- tb_outcomes_period %>%
+  mutate(completed = if_else(`Treatment Outcome` %in% c("C", "TC"), 1, 0)) %>%
+  group_by(period) %>%
+  summarise(
+    completed = sum(completed),
+    total = n(),
+    completion_rate = completed / total * 100,
+    .groups = "drop"
+  )
+
+completion_rate %>% flextable()
+
+```
+
+
+```{r}
+tb_outcomes_period <- tb_outcomes_period %>%
+  mutate(
+    completed = if_else(`Treatment Outcome` %in% c("C", "TC"), 1, 0)
+  )
+
+```
+
+
+
+```{r}
+model_completion <- glm(
+  completed ~ period,
+  data = tb_outcomes_period,
+  family = binomial
+)
+
+
+```
+
+```{r}
+summary(model_completion)
+```
+
+```{r}
+library(broom)
+
+or_table <- tidy(model_completion, exponentiate = TRUE, conf.int = TRUE)
+
+or_table
+
+```
+
+```{r}
+
+library(dplyr)
+
+# Clean the table and round numbers
+or_table_clean <- or_table %>%
+  mutate(
+    estimate = round(estimate, 2),
+    conf.low = round(conf.low, 2),
+    conf.high = round(conf.high, 2),
+    p.value = signif(p.value, 3),
+    term = case_when(
+      term == "(Intercept)" ~ "Baseline (Pre-COVID, Female, <15 years)",
+      term == "periodCOVID" ~ "COVID period vs Pre-COVID",
+      term == "periodPost-COVID" ~ "Post-COVID vs Pre-COVID",
+      TRUE ~ term
+    )
+  ) %>%
+  select(term, estimate, conf.low, conf.high, p.value)
+
+# Print with kableExtra
+or_table_clean %>%
+  kable(
+    col.names = c("Variable", "Adjusted OR", "95% CI Lower", "95% CI Upper", "P-value"),
+    caption = "Adjusted Odds Ratios for TB Treatment Completion (Univariate Model)"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  )
+
+```
+
+
+
+```{r}
+tb_outcomes_period <- tb_outcomes_period %>%
+  mutate(
+    age_group = case_when(
+      `Age on Registration` < 15 ~ "<15",
+      `Age on Registration` >= 15 & `Age on Registration` < 25 ~ "15–24",
+      `Age on Registration` >= 25 & `Age on Registration` < 45 ~ "25–44",
+      `Age on Registration` >= 45 & `Age on Registration` < 65 ~ "45–64",
+      `Age on Registration` >= 65 ~ "65+",
+      TRUE ~ NA_character_
+    )
+  )
+
+
+```
+
+```{r}
+tb_outcomes_period <- tb_outcomes_period %>%
+  mutate(
+    period = factor(period, levels = c("Pre-COVID", "COVID", "Post-COVID")),
+    Gender = factor(Gender),
+    age_group = factor(age_group)
+  )
+
+```
+
+```{r}
+model_multiv <- glm(
+  completed ~ period + Gender + age_group,
+  data = tb_outcomes_period,
+  family = binomial
+)
+
+summary(model_multiv)
+
+```
+
+```{r}
+or_multiv <- tidy(
+  model_multiv,
+  exponentiate = TRUE,
+  conf.int = TRUE
+)
+
+or_multiv
+```
+
+
+```{r}
+or_multiv_clean <- or_multiv %>%
+  mutate(
+    term = case_when(
+      term == "(Intercept)" ~ "Baseline (Pre-COVID, Female, <15 years)",
+      term == "periodCOVID" ~ "COVID period vs Pre-COVID",
+      term == "periodPost-COVID" ~ "Post-COVID vs Pre-COVID",
+      term == "GenderMale" ~ "Male vs Female",
+      term == "age_group15–24" ~ "Age 15–24 vs <15",
+      term == "age_group25–44" ~ "Age 25–44 vs <15",
+      term == "age_group45–64" ~ "Age 45–64 vs <15",
+      term == "age_group65+" ~ "Age ≥65 vs <15",
+      TRUE ~ term
+    )
+  )
+
+```
+
+
+```{r}
+or_multiv_clean %>%
+  mutate(
+    estimate = round(estimate, 2),
+    conf.low = round(conf.low, 2),
+    conf.high = round(conf.high, 2),
+    p.value = signif(p.value, 3)
+  ) %>%
+  select(term, estimate, conf.low, conf.high, p.value) %>%
+  kable(
+    col.names = c(
+      "Variable",
+      "Adjusted OR",
+      "95% CI (Lower)",
+      "95% CI (Upper)",
+      "P-value"
+    ),
+    caption = "Adjusted Odds Ratios for TB Treatment Completion"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover"),
+    full_width = FALSE
+  )
+
+```
+
+
