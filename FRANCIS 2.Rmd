@@ -13,7 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
-```{r}
+```{r, include=FALSE}
 library(tidyverse)
 library(flextable)
 library(dlookr)
@@ -22,18 +22,16 @@ library(kableExtra)
 
 ```
 
-```{r}
+```{r, include=FALSE}
 dat <- read_csv("D:/Documents/r-modeling-benchpress/Francis_RQ (2).csv")
 
-
-```
-
-```{r}
 census_data <- read_csv("D:/Downloads/2019-population_census-report-per-county.csv")
-
 ```
 
-```{r}
+
+#checking nulls
+
+```{r, include=FALSE}
 percent_nulls <- function(dat) {
   dat %>%
     summarise(
@@ -51,15 +49,25 @@ percent_nulls <- function(dat) {
 
 ```
 
-```{r}
+```{r, Percentage of Missing Values by Variable, include=TRUE}
 percent_nulls(dat) %>%
   arrange(desc(percent_null)) %>%
-  flextable() %>%
-  autofit()
+  mutate(
+    percent_null = round(percent_null, 2)  
+  ) %>%
+  kable(
+    col.names = c("Variable", "Percent Missing"),
+    caption = "Percentage of Missing Values by Variable"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  )
 
 ```
 
-```{r, percentage of nulls : dropping 60% nulls}
+```{r, percentage of nulls : dropping 60% nulls, include=FALSE}
 vars_to_drop <- dat %>%
   summarise(across(everything(), ~ mean(is.na(.x)) * 100)) %>%
   pivot_longer(everything(),
@@ -71,7 +79,7 @@ vars_to_drop <- dat %>%
 ```
 
 
-```{r, dataframe}
+```{r, dataframe, include=FALSE}
 dat2 <- dat %>%
    select(-all_of(vars_to_drop))
 
@@ -88,9 +96,99 @@ dat2 %>%
    autofit()
 ```
 
+```{r}
+# Summarize counts per county
+county_summary <- dat2 %>%
+  count(County) %>%
+  mutate(
+    percentage = round(n / sum(n) * 100, 2)
+  ) %>%
+  arrange(desc(n))
+
+# Add a total row
+# Summarize counts per county
+county_summary <- dat2 %>%
+  count(County) %>%
+  mutate(
+    percentage = round(n / sum(n) * 100, 2),
+    total_cases = sum(n)           # same total repeated for each row
+  ) %>%
+  arrange(desc(n))
+
+```
 
 ```{r}
-tb_county <- dat2 %>%
+county_summary <- dat2 %>%
+  filter(!is.na(County)) %>%             # remove rows with missing county
+  count(County) %>%
+  mutate(
+    total_cases = sum(n),                # total TB cases repeated for each row
+    percentage = round(n / total_cases * 100, 2)
+  ) %>%
+  arrange(desc(n)) %>%
+  select(County, n, total_cases, percentage)  # reorder columns
+
+```
+
+
+```{r, table, include=TRUE}
+
+
+# Print table with kableExtra
+county_summary %>%
+  kable(
+    col.names = c("County", "Number of Patients", "Total TB Cases", "Percentage of Total"),
+    caption = "TB Cases Distribution by County"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  )
+
+
+```
+
+
+
+```{r,TB Cases Distribution by County, include=TRUE}
+
+county_summary <- county_summary %>%
+  mutate(County = factor(County, levels = rev(County)),
+         n_thousands = n / 1000)  # convert to thousands
+
+ggplot(county_summary, aes(x = County, y = n_thousands, fill = County)) +
+  geom_col() +
+  scale_fill_grey(start = 0.3, end = 0.8) +
+  coord_flip() +
+  labs(
+    title = "TB Cases Distribution by County",
+    x = "County",
+    y = "Number of TB Patients (thousands)"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none") +
+  scale_y_continuous(expand = c(0,0)) 
+
+```
+
+```{r, include=FALSE}
+
+dat3 <- dat2 %>%
+  mutate(
+    County = recode(
+      County,
+      "Murang'a" = "Muranga",
+      "Pokot" = "West Pokot"
+    )
+  )
+
+```
+
+
+
+```{r, include=FALSE}
+tb_county <- dat3 %>%
    group_by(County) %>%
    summarise(TB_cases = n()) %>%
    ungroup()
@@ -98,7 +196,47 @@ tb_county <- dat2 %>%
 ```
 
 
-```{r, Gender distirbution}
+
+```{r, include=FALSE}
+shape_file <- st_read("shapefiles/County.shp")
+```
+
+```{r, include=FALSE}
+kenya_tb <- shape_file %>%
+   left_join(tb_county, by = c("Name" = "County"))
+
+```
+
+```{r, include=FALSE}
+library(ggplot2)
+library(plotly)
+library(sf)
+
+# Basic ggplot map
+p <- ggplot(kenya_tb) +
+  geom_sf(aes(
+    fill = TB_cases,
+    text = paste0(Name, "\nTB Cases: ", TB_cases)  # use correct county column
+  ), color = "white", linewidth = 0.2) +
+  scale_fill_distiller(palette = "YlOrRd", direction = 1, na.value = "grey90") +
+  labs(
+    title = "Distribution of TB Cases by County in Kenya",
+    fill = "TB Cases"
+  ) +
+  theme_minimal()
+
+# Convert to interactive plot
+
+
+
+```
+
+```{r, include=TRUE}
+ggplotly(p, tooltip = "text")
+```
+
+
+```{r, Gender distirbution, include=FALSE}
 dat2 <- dat2 %>%
   rename(Gender = `Sex (M/F)`) %>%
   mutate(
@@ -112,7 +250,7 @@ dat2 <- dat2 %>%
 
 ```
 
-```{r}
+```{r, include=TRUE}
 dat2 %>%
    count(`Gender`) %>%
    mutate(percentage = n / sum(n) * 100) %>%
@@ -121,7 +259,7 @@ dat2 %>%
 ```
 
 
-```{r}
+```{r, include=FALSE}
 library(rnaturalearth)
 library(rnaturalearthhires)
 library(viridis)
@@ -130,24 +268,7 @@ library(sf)
 ```
 
 
-```{r}
-shape_file <- st_read("shapefiles/County.shp")
-```
 
-```{r}
-kenya_tb <- shape_file %>%
-   left_join(tb_county, by = c("Name" = "County"))
-
-```
-
-```{r}
-ggplot(kenya_tb) +
-   geom_sf(aes(fill = TB_cases), color = "white", linewidth = 0.2) +
-   scale_fill_distiller(palette = "YlOrRd", direction = 1, na.value = "grey90") +
-   labs(title = "Distribution of TB Cases by County in Kenya", fill = "TB Cases") +
-   theme_minimal()
-
-```
 
 ```{r, standardise the 3 counties}
 dat3 <- dat2 %>%
@@ -164,7 +285,7 @@ dat3 <- dat2 %>%
 
 ```
 
-```{r}
+```{r,include=FALSE}
 tb_by_county <- dat3 %>%
   group_by(County) %>%
   summarise(
@@ -174,7 +295,7 @@ tb_by_county <- dat3 %>%
 
 ```
 
-```{r, join}
+```{r, join, include=FALSE}
 tb_join <- tb_by_county %>%
   left_join(
     census_data %>% select(County, Total_Population19),
@@ -184,7 +305,7 @@ tb_join <- tb_by_county %>%
 
 ```
 
-```{r}
+```{r, include=FALSE}
 tb_calc <- tb_join %>%
   mutate(
     overall_percent = round(100 * TB_cases / sum(TB_cases), 2),
@@ -194,7 +315,7 @@ tb_calc <- tb_join %>%
 
 ```
 
-```{r}
+```{r, include=FALSE}
 tb_calc %>%
   select(County, Total_Population19, TB_cases, overall_percent, prevalence_per_100k) %>%
   arrange(desc(TB_cases)) %>%
@@ -207,7 +328,7 @@ tb_calc %>%
 ```
 
 
-```{r}
+```{r, include=TRUE}
 tb_calc %>%
   select(
     County,
@@ -232,45 +353,7 @@ tb_calc %>%
 
 
 
-```{r}
-
-
-ggplot(
-  tb_by_county,
-  aes(
-    x = TB_cases,
-    y = reorder(County, TB_cases)
-  )
-) +
-  geom_col(fill = "steelblue", width = 0.7) +
-  geom_text(
-    aes(label = scales::comma(TB_cases)),
-    hjust = -0.1,
-    size = 3
-  ) +
-  labs(
-    title = "Tuberculosis (TB) Cases by County, Kenya",
-    subtitle = "Count of reported TB cases",
-    x = "Number of TB Cases",
-    y = "County"
-  ) +
-  scale_x_continuous(
-    labels = scales::comma,
-    expand = expansion(mult = c(0, 0.15))  # space for labels
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    axis.text.y = element_text(size = 10),
-    axis.title = element_text(face = "bold"),
-    plot.title = element_text(face = "bold", size = 14),
-    plot.subtitle = element_text(size = 11),
-    panel.grid.major.y = element_blank()
-  )
-
-
-```
-
-```{r}
+```{r, include=FALSE}
 
 tb_by_sex <- dat2 %>%
   group_by(County, Gender) %>%
@@ -278,12 +361,10 @@ tb_by_sex <- dat2 %>%
     TB_cases = n(),
     .groups = "drop"
   )
-
-
 ```
 
 
-```{r}
+```{r, include=FALSE}
 tb_sex_wide <- tb_by_sex %>%
   tidyr::pivot_wider(
     names_from = Gender,
@@ -294,7 +375,7 @@ tb_sex_wide <- tb_by_sex %>%
 ```
 
 
-```{r}
+```{r, include=FALSE}
 tb_sex_wide <- tb_sex_wide %>%
   mutate(
     F_to_M_ratio = round(
@@ -307,11 +388,10 @@ tb_sex_wide <- tb_sex_wide %>%
 
 
 
-```{r, Dender ratio to county}
-
+```{r, Dender ratio to county, include=TRUE}
 tb_sex_wide %>%
   select(County, Female, Male, F_to_M_ratio) %>%
-  filter(!is.na(F_to_M_ratio)) %>%          # remove rows where F_to_M_ratio is NA
+  filter(!is.na(F_to_M_ratio)) %>%   
   arrange(desc(F_to_M_ratio)) %>%
   mutate(
     Female = round(Female, 0),
@@ -331,57 +411,7 @@ tb_sex_wide %>%
 ```
 
 
-
-
-```{r}
-ggplot(
-  tb_by_sex,
-  aes(
-    x = TB_cases,
-    y = reorder(County, TB_cases),
-    fill = Gender
-  )
-) +
-  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
-  geom_text(
-    aes(label = TB_cases),
-    position = position_dodge(width = 0.8),
-    hjust = -0.15,
-    size = 3
-  ) +
-  labs(
-    title = "TB Cases by County and Gender",
-    subtitle = "Comparison of male and female TB burden by county",
-    x = "Number of TB Cases",
-    y = "County",
-    fill = "Gender"
-  ) +
-  scale_fill_manual(
-    values = c(
-      "Female" = "salmon",
-      "Male" = "steelblue"
-    )
-  ) +
-  scale_x_continuous(
-    expand = expansion(mult = c(0, 0.2))
-  ) +
-  theme_minimal(base_size = 12) +
-  theme(
-    axis.text.y = element_text(size = 10),
-    axis.title = element_text(face = "bold"),
-    plot.title = element_text(face = "bold", size = 14),
-    plot.subtitle = element_text(size = 11),
-    panel.grid.major.y = element_blank()
-  )
-
-```
-
-
-
-
-
-
-```{r, pre and post covid}
+```{r, pre and post covid, include=FALSE}
 
 dat5 <- dat3 %>%
   mutate(
@@ -396,19 +426,19 @@ table(dat5$covid_period)
 ```
 
 
-```{r}
+```{r, include=FALSE}
 dat5_summary <- dat5 %>%
   group_by(Year, covid_period) %>%
   summarise(n = n(), .groups = "drop")
 ```
 
-```{r}
+```{r ,include=FALSE}
 
 dat5_summary %>% flextable()
 
 ```
 
-```{r}
+```{r, include=FALSE}
 ggplot(dat5_summary, aes(x = Year, y = n, color = covid_period)) +
   geom_line(size = 1.2) +
   geom_point(size = 2) +
@@ -422,7 +452,7 @@ ggplot(dat5_summary, aes(x = Year, y = n, color = covid_period)) +
 
 ```
 
-```{r}
+```{r, include=TRUE}
 year_counts <- dat5 %>%
   count(Year)
 
@@ -451,10 +481,7 @@ tb_cases_covid <- dat5 %>%
 ```
 
 
-
-
-
-```{r,gender analysis}
+```{r,gender analysis, include=FALSE}
 gender_county_covid <- dat5 %>%
   filter(!is.na(Gender)) %>%
   mutate(
@@ -474,13 +501,12 @@ gender_county_covid <- dat5 %>%
 
 ```
 
-```{r}
+```{r, include=FALSE}
 gender_county_covid %>% flextable()
 ```
 
 
-```{r}
-
+```{r, include=FALSE}
 gender_county_clean <- gender_county_covid %>%
   filter(
     !is.na(County),
@@ -491,7 +517,7 @@ gender_county_clean <- gender_county_covid %>%
 ```
 
 
-```{r}
+```{r, include=FALSE}
 gender_county_clean <- gender_county_clean %>%
   group_by(County) %>%
   filter(n() == 2) %>%   # keeps counties with both periods
@@ -500,7 +526,7 @@ gender_county_clean <- gender_county_clean %>%
 ```
 
 
-```{r}
+```{r, include=FALSE}
 gender_county_presentable <- gender_county_clean %>%
   arrange(County, covid_period) %>%
   mutate(F_to_M_ratio = round(F_to_M_ratio, 2))
@@ -508,16 +534,14 @@ gender_county_presentable <- gender_county_clean %>%
 ```
 
 
-```{r}
+```{r, include=TRUE}
 
 gender_county_presentable %>% flextable()
 
 ```
 
 
-
-
-```{r}
+```{r, include=FALSE}
 gender_change <- gender_county_presentable %>%
   tidyr::pivot_wider(
     names_from = covid_period,
@@ -542,7 +566,7 @@ ggplot(gender_change,
 ##Objective 2
 
 
-```{r}
+```{r, include=FALSE}
 library(dplyr)
 
 dat6 <- dat5 %>%
@@ -565,7 +589,7 @@ table(dat6$outcome)
 ```
 
 
-```{r}
+```{r, include=FALSE}
 tb_outcome_year <- dat6 %>%
   group_by(Year, outcome) %>%
   summarise(
@@ -578,7 +602,7 @@ tb_outcome_year %>% flextable()
 
 ```
 
-```{r}
+```{r, include=FALSE}
 tb_outcome_year <- tb_outcome_year %>%
   group_by(Year) %>%
   mutate(
@@ -590,7 +614,7 @@ tb_outcome_year <- tb_outcome_year %>%
 ```
 
 
-```{r, table for treatment outcome from 2017 to 2022}
+```{r, table for treatment outcome from 2017 to 2022, include=TRUE}
 
 tb_outcome_year_wide <- tb_outcome_year %>%
   select(Year, outcome, cases) %>%
@@ -605,7 +629,7 @@ tb_outcome_year_wide %>% flextable()
 ```
 
 
-```{r, Mortality Analysis}
+```{r, Mortality Analysis, include=FALSE}
 
 death_year <- dat6 %>%
   filter(outcome == "Died") %>%
@@ -613,7 +637,7 @@ death_year <- dat6 %>%
 
 ```
 
-```{r}
+```{r, include=FALSE}
 ggplot(death_year, aes(x = Year, y = n)) +
   geom_line(size = 1.2, color = "#C0392B") +
   geom_point(size = 3, color = "#C0392B") +
@@ -629,14 +653,14 @@ ggplot(death_year, aes(x = Year, y = n)) +
 
 ```
 
-```{r}
+```{r, include=FALSE}
 outcome_year <- dat6 %>%
   group_by(Year, outcome) %>%
   summarise(cases = n(), .groups = "drop")
 
 ```
 
-```{r,TB Treatment Outcomes by Year}
+```{r,TB Treatment Outcomes by Year, include=TRUE}
 ggplot(outcome_year, aes(x = factor(Year), y = cases, fill = outcome)) +
   geom_col(width = 0.8) +
   labs(
@@ -652,7 +676,7 @@ ggplot(outcome_year, aes(x = factor(Year), y = cases, fill = outcome)) +
 
 ```
 
-```{r,Treatment Success Rate (Cured + Treatment Completed)}
+```{r,Treatment Success Rate (Cured + Treatment Completed), include=FALSE}
 success_year <- dat6 %>%
   filter(outcome %in% c("Cured", "Treatment completed", 
                         "Died", "Failed", "Lost to follow-up", "Transferred out")) %>%
@@ -668,7 +692,7 @@ success_year <- dat6 %>%
 
 ```
 
-```{r}
+```{r, include=TRUE}
 ggplot(success_year, aes(x = Year, y = success_rate)) +
   geom_line(size = 1.2, color = "#1E8449") +
   geom_point(size = 3, color = "#1E8449") +
@@ -683,7 +707,7 @@ ggplot(success_year, aes(x = Year, y = success_rate)) +
 ```
 
 
-```{r}
+```{r, include=FALSE}
 covid_outcomes <- dat6 %>%
   filter(outcome %in% c("Cured", "Treatment completed", 
                         "Died", "Failed", "Lost to follow-up", "Transferred out")) %>%
@@ -695,7 +719,7 @@ covid_outcomes <- dat6 %>%
 
 ```
 
-```{r}
+```{r, include=TRUE}
 ggplot(covid_outcomes, aes(x = covid_period, y = percent, fill = outcome)) +
   geom_col(width = 0.6) +
   labs(
@@ -710,7 +734,7 @@ ggplot(covid_outcomes, aes(x = covid_period, y = percent, fill = outcome)) +
 
 
 
-```{r, mortality plot}
+```{r, mortality plot, include=FALSE}
 
 theme_tb <- theme_minimal(base_size = 14) +
   theme(
@@ -723,7 +747,7 @@ theme_tb <- theme_minimal(base_size = 14) +
 ```
 
 
-```{r}
+```{r, include=TRUE}
 p_death <- ggplot(death_year, aes(x = Year, y = n)) +
   geom_line(size = 1.3, color = "#B03A2E") +
   geom_point(size = 3, color = "#B03A2E") +
@@ -740,20 +764,20 @@ p_death
 ```
 
 
-```{r}
+```{r, include=FALSE}
 ggsave("TB_Mortality_Trend.png", p_death,
        width = 8, height = 5, dpi = 300)
 
 ```
 
 
-```{r}
+```{r,include=}
 dat6 <- dat6 %>%
   mutate(died = if_else(outcome == "Died", 1, 0))
 
 ```
 
-```{r, mortality by age group}
+```{r, mortality by age group, include=FALSE}
 # Create age groups
 dat7 <- dat6 %>%
   mutate(age_group = case_when(
@@ -767,7 +791,7 @@ dat7 <- dat6 %>%
 ```
 
 
-```{r}
+```{r, include=FALSE}
 age_gender_death <- dat7 %>%
   group_by(age_group, Gender) %>%
   summarise(deaths = sum(died, na.rm = TRUE),
@@ -776,13 +800,13 @@ age_gender_death <- dat7 %>%
             .groups = "drop")
 ```
 
-```{r}
+```{r,include=TRUE}
 age_gender_death %>% flextable()
 
 ```
 
 
-```{r}
+```{r, include=TRUE}
 ggplot(age_gender_death, aes(x = age_group, y = mortality_rate, fill = Gender)) +
   geom_col(position = "dodge") +
   labs(
@@ -795,8 +819,8 @@ ggplot(age_gender_death, aes(x = age_group, y = mortality_rate, fill = Gender)) 
 ```
 
 
-```{r}
-dat8 <- dat8 %>%
+```{r, include=FALSE}
+dat8 <- dat7 %>%
   mutate(
     # Convert to proper Date first
     DateReg = as.Date(`Date of Registration`, format = "%d-%b-%y"),
@@ -806,18 +830,18 @@ dat8 <- dat8 %>%
 
 ```
 
-```{r}
+```{r, include=FALSE}
 monthly_deaths <- dat8 %>%
   group_by(month) %>%
   summarise(deaths = sum(died, na.rm = TRUE), .groups = "drop")
 
 ```
 
-```{r}
+```{r, include=FALSE}
 monthly_deaths %>% flextable()
 ```
 
-```{r, bar plot}
+```{r, bar plot, include=TRUE}
 
 ggplot(monthly_deaths, aes(x = month, y = deaths)) +
   geom_col(fill = "#C0392B") +
@@ -836,7 +860,7 @@ ggplot(monthly_deaths, aes(x = month, y = deaths)) +
 ```
 
 
-```{r}
+```{r, include=TRUE}
 ggplot(monthly_deaths, aes(x = month, y = deaths)) +
   geom_line(color = "#C0392B", size = 1.2) +
   geom_point(color = "#C0392B", size = 2) +
@@ -856,7 +880,7 @@ ggplot(monthly_deaths, aes(x = month, y = deaths)) +
 ##Case fatality per 100,000 TB cases
 
 
-```{r, Case fatality per 100,000 TB cases}
+```{r, Case fatality per 100,000 TB cases, include=FALSE}
 abs_deaths <- dat8 %>%
   group_by(age_group, Gender) %>%
   summarise(
@@ -868,7 +892,7 @@ abs_deaths %>% flextable()
 
 ```
 
-```{r}
+```{r, Case fatality per 100,000 TB cases, include=TRUE}
 cfr_age_gender <- dat8 %>%
   group_by(age_group, Gender) %>%
   summarise(
@@ -883,7 +907,7 @@ cfr_age_gender %>% flextable()
 ```
 
 
-```{r}
+```{r, include=TRUE}
 ggplot(cfr_age_gender,
        aes(x = age_group, y = case_fatality_100k, fill = Gender)) +
   geom_col(position = "dodge") +
@@ -901,7 +925,7 @@ ggplot(cfr_age_gender,
 ## TB Treatment Follow-up Outcomes Before, During, and After COVID-19
 
 
-```{r}
+```{r, include=FALSE}
 tb_outcomes_period <- dat8 %>%
   mutate(
     period = case_when(
@@ -917,7 +941,7 @@ tb_outcomes_period <- dat8 %>%
 ```
 
 
-```{r}
+```{r, include=FALSE}
 tb_outcomes_period <- tb_outcomes_period %>%
   mutate(
     followup_outcome = case_when(
@@ -931,7 +955,7 @@ tb_outcomes_period <- tb_outcomes_period %>%
 
 ```
 
-```{r}
+```{r, include=FALSE}
 tb_summary_period <- tb_outcomes_period %>%
   group_by(period, followup_outcome) %>%
   summarise(n = n(), .groups = "drop") %>%
@@ -943,7 +967,7 @@ tb_summary_period %>% flextable()
 
 ```
 
-```{r}
+```{r,TB Treatment Follow-up Outcomes Before, During, and After COVID-19, include=TRUE}
 ggplot(tb_summary_period,
        aes(x = period, y = percent, fill = followup_outcome)) +
   geom_col(width = 0.7) +
@@ -957,7 +981,7 @@ ggplot(tb_summary_period,
 
 ```
 
-```{r}
+```{r,completion_rate,  include=TRUE}
 completion_rate <- tb_outcomes_period %>%
   mutate(completed = if_else(`Treatment Outcome` %in% c("C", "TC"), 1, 0)) %>%
   group_by(period) %>%
@@ -973,7 +997,7 @@ completion_rate %>% flextable()
 ```
 
 
-```{r}
+```{r, include=FALSE}
 tb_outcomes_period <- tb_outcomes_period %>%
   mutate(
     completed = if_else(`Treatment Outcome` %in% c("C", "TC"), 1, 0)
@@ -983,7 +1007,7 @@ tb_outcomes_period <- tb_outcomes_period %>%
 
 
 
-```{r}
+```{r, include=FALSE}
 model_completion <- glm(
   completed ~ period,
   data = tb_outcomes_period,
@@ -993,23 +1017,19 @@ model_completion <- glm(
 
 ```
 
-```{r}
+```{r, include=FALSE}
 summary(model_completion)
 ```
 
-```{r}
+```{r, include=FALSE}
 library(broom)
 
 or_table <- tidy(model_completion, exponentiate = TRUE, conf.int = TRUE)
 
-or_table
 
 ```
 
-```{r}
-
-library(dplyr)
-
+```{r, include=FALSE}
 # Clean the table and round numbers
 or_table_clean <- or_table %>%
   mutate(
@@ -1026,7 +1046,9 @@ or_table_clean <- or_table %>%
   ) %>%
   select(term, estimate, conf.low, conf.high, p.value)
 
-# Print with kableExtra
+```
+
+```{r,Adjusted Odds Ratios for TB Treatment Completion, include=TRUE}
 or_table_clean %>%
   kable(
     col.names = c("Variable", "Adjusted OR", "95% CI Lower", "95% CI Upper", "P-value"),
@@ -1037,12 +1059,11 @@ or_table_clean %>%
     full_width = FALSE,
     position = "center"
   )
-
 ```
 
 
 
-```{r}
+```{r, include=FALSE}
 tb_outcomes_period <- tb_outcomes_period %>%
   mutate(
     age_group = case_when(
@@ -1054,11 +1075,9 @@ tb_outcomes_period <- tb_outcomes_period %>%
       TRUE ~ NA_character_
     )
   )
-
-
 ```
 
-```{r}
+```{r, include=FALSE}
 tb_outcomes_period <- tb_outcomes_period %>%
   mutate(
     period = factor(period, levels = c("Pre-COVID", "COVID", "Post-COVID")),
@@ -1068,7 +1087,7 @@ tb_outcomes_period <- tb_outcomes_period %>%
 
 ```
 
-```{r}
+```{r,include=FALSE}
 model_multiv <- glm(
   completed ~ period + Gender + age_group,
   data = tb_outcomes_period,
@@ -1079,18 +1098,16 @@ summary(model_multiv)
 
 ```
 
-```{r}
+```{r, include=FALSE}
 or_multiv <- tidy(
   model_multiv,
   exponentiate = TRUE,
   conf.int = TRUE
 )
-
-or_multiv
 ```
 
 
-```{r}
+```{r include=FALSE}
 or_multiv_clean <- or_multiv %>%
   mutate(
     term = case_when(
@@ -1109,7 +1126,7 @@ or_multiv_clean <- or_multiv %>%
 ```
 
 
-```{r}
+```{r, include=TRUE}
 or_multiv_clean %>%
   mutate(
     estimate = round(estimate, 2),
