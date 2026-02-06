@@ -19,6 +19,9 @@ library(flextable)
 library(dlookr)
 library(knitr)
 library(kableExtra)
+library(ggplot2)
+library(plotly)
+library(sf)
 
 ```
 
@@ -208,9 +211,7 @@ kenya_tb <- shape_file %>%
 ```
 
 ```{r, include=FALSE}
-library(ggplot2)
-library(plotly)
-library(sf)
+
 
 # Basic ggplot map
 p <- ggplot(kenya_tb) +
@@ -771,7 +772,7 @@ ggsave("TB_Mortality_Trend.png", p_death,
 ```
 
 
-```{r,include=}
+```{r,include=FALSE}
 dat6 <- dat6 %>%
   mutate(died = if_else(outcome == "Died", 1, 0))
 
@@ -880,7 +881,7 @@ ggplot(monthly_deaths, aes(x = month, y = deaths)) +
 ##Case fatality per 100,000 TB cases
 
 
-```{r, Case fatality per 100,000 TB cases, include=FALSE}
+```{r, Case fatality per 100,000, include=FALSE}
 abs_deaths <- dat8 %>%
   group_by(age_group, Gender) %>%
   summarise(
