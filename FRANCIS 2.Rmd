@@ -25,7 +25,8 @@ library(dlookr)
 ```
 
 ```{r}
-dat <- read_csv("D:/Downloads/R Case Studies/FRANCIS MOTIRI/Francis_RQ (2).csv")
+dat <- read_csv("D:/Documents/r-modeling-benchpress/Francis_RQ (2).csv")
+
 
 ```
 

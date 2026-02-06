@@ -257,3 +257,105 @@ ggplot() +
 
 ```
 
+```{r}
+library(sf)
+library(dplyr)
+
+# Compute centroids for placing language labels / points
+africa_centroids <- st_centroid(africa_map_data)
+
+```
+
+
+```{r}
+# Each language will get the centroid of its country
+lang_map_data <- africa %>%
+  left_join(
+    africa_centroids %>% select(ADM0_NAME, geometry),
+    by = c("country" = "ADM0_NAME")
+  ) %>%
+  st_as_sf()  # keep as sf object
+
+
+```
+
+
+```{r}
+library(ggplot2)
+
+ggplot() +
+  # Base map
+  geom_sf(data = africa_map_data, fill = "grey95", color = "white", linewidth = 0.2) +
+  
+  # Language points
+  geom_sf(data = lang_map_data, aes(color = family), size = 2, alpha = 0.8) +
+  
+  # Optional: add labels for top languages
+  # geom_sf_text(data = lang_map_data %>% filter(native_speakers > 1e6),
+  #             aes(label = language), size = 2, color = "black") +
+  
+  scale_color_brewer(palette = "Set3") +  # color by language family
+  labs(
+    title = "Languages of Africa by Family",
+    subtitle = "Each dot represents a language in its country",
+    color = "Language Family"
+  ) +
+  theme_minimal()
+
+
+```
+
+```{r}
+library(dplyr)
+
+# For each country, find the family with the most native speakers
+library(dplyr)
+
+# Fix country names first
+africa_fixed <- africa %>%
+  mutate(country = case_when(
+    country == "Ivory Coast" ~ "Côte d'Ivoire",
+    country == "DR Congo" ~ "Democratic Republic of the Congo",
+    country == "Tanzania" ~ "United Republic of Tanzania",
+    country == "Cape Verde" ~ "Cape Verde",
+    TRUE ~ country
+  ))
+
+# Count number of languages per country
+lang_by_country <- africa_fixed %>%
+  count(country, name = "n_languages")
+
+# Identify dominant language family per country
+dominant_family <- africa_fixed %>%
+  group_by(country, family) %>%
+  summarise(total_speakers = sum(native_speakers, na.rm = TRUE), .groups = "drop") %>%
+  slice_max(total_speakers, n = 1, with_ties = FALSE) %>%
+  select(country, family)
+
+
+```
+
+```{r}
+# Join to the country polygons
+africa_family_map <- africa_map_data %>%
+  left_join(dominant_family, by = c("ADM0_NAME" = "country"))
+
+```
+
+
+```{r}
+library(ggplot2)
+
+ggplot(africa_family_map) +
+  geom_sf(aes(fill = family), color = "white", linewidth = 0.2) +
+  scale_fill_brewer(palette = "Set3") +  # you can customize colors
+  labs(
+    title = "Dominant Language Family in African Countries",
+    subtitle = "Each country is colored by the language family with the most speakers",
+    fill = "Language Family"
+  ) +
+  theme_minimal()
+
+```
+
+
