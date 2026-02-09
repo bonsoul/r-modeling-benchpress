@@ -91,6 +91,59 @@ schedule %>%
 
 
 ```{r}
+medals <- schedule %>%
+  filter(is_medal_event) %>%
+  count(date)
+```
+
+```{r}
+ggplot(medals, aes(x = date, y = n)) +
+  geom_col() +
+  labs(
+    title = "Medal Events by Day",
+    x = "Date",
+    y = "Number of Medal Events"
+  )
+
+
+```
+
+#What is the typical duration of different types of events?
+
+```{r,different types of events}
+duration <- schedule %>%
+  mutate(
+    duration_minutes = as.numeric(
+      difftime(end_datetime_local, start_datetime_local, units = "mins")
+    ),
+    event_type = case_when(
+      is_training ~ "Training",
+      is_medal_event ~ "Medal",
+      TRUE ~ "Competition"
+    )
+  )
+
+```
+
+```{r}
+duration %>%
+  group_by(event_type) %>%
+  summarise(
+    median_duration = median(duration_minutes),
+    mean_duration   = mean(duration_minutes),
+    n_events        = n()
+  )
+
+```
+
+```{r}
+ggplot(duration, aes(x = event_type, y = duration_minutes)) +
+  geom_boxplot() +
+  labs(
+    title = "Event Duration by Event Type",
+    x = NULL,
+    y = "Duration (minutes)"
+  )
 
 ```
 
