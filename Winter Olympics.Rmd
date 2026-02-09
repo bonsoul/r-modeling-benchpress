@@ -1,0 +1,96 @@
+---
+title: "Winter Sports Competition"
+author: "Bonsoul"
+date: "`r Sys.Date()`"
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, message = FALSE, dpi = 180,fig.width = 8, fig.height = 5,echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(knitr)
+library(flextable)
+library(ggthemes)
+library(kableExtra)
+
+#theme_set(theme_plex())
+```
+
+```{r, dataset}
+tuesdata <- tidytuesdayR::tt_load(2026, week = 6)
+
+schedule <- tuesdata$schedule
+
+```
+
+
+```{r}
+glimpse(schedule)
+```
+
+```{r}
+percent_nulls <- function(schedule) {
+  schedule %>%
+    summarise(
+      across(
+        everything(),
+        ~ mean(is.na(.x)) * 100
+      )
+    ) %>%
+    pivot_longer(
+      cols = everything(),
+      names_to = "variable",
+      values_to = "percent_null"
+    )
+}
+```
+
+```{r}
+percent_nulls(schedule) %>%
+  arrange(desc(percent_null)) %>%
+  mutate(
+    percent_null = round(percent_null, 2)  
+  ) %>%
+  kable(
+    col.names = c("Variable", "Percent Missing"),
+    caption = "Percentage of Missing Values by Variable"
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  )
+
+```
+
+
+```{r}
+schedule %>%
+  count(discipline_name, sort = TRUE)
+
+```
+
+```{r,Top 10 Disciplines by Number of Scheduled Events}
+schedule %>%
+  count(discipline_name) %>%
+  slice_max(n, n = 10) %>%
+  ggplot(aes(x = n, y = reorder(discipline_name, n))) +
+  geom_col() +
+  labs(
+    title = "Top 10 Disciplines by Number of Scheduled Events",
+    x = "Number of Events",
+    y = NULL
+  )
+
+```
+
+
+```{r}
+
+```
+
