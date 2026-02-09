@@ -250,3 +250,44 @@ schedule %>%
 
 ```
 
+```{r}
+
+discipline_day <- schedule %>%
+  count(discipline_name, day_of_week)
+
+```
+
+```{r}
+ggplot(discipline_day, aes(x = day_of_week, y = n)) +
+  geom_col() +
+  facet_wrap(~ discipline_name, scales = "free_y") +
+  labs(
+    title = "Event Distribution by Discipline and Day of Week",
+    x = NULL,
+    y = "Number of Events"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+venue_medal <- schedule %>%
+  mutate(
+    medal_status = if_else(is_medal_event, "Medal Event", "Non-Medal Event")
+  ) %>%
+  count(venue_name, medal_status)
+
+```
+
+```{r}
+ggplot(venue_medal, aes(x = reorder(venue_name, n), y = n)) +
+  geom_col() +
+  coord_flip() +
+  facet_wrap(~ medal_status, scales = "free_x") +
+  labs(
+    title = "Events by Venue and Medal Status",
+    x = NULL,
+    y = "Number of Events"
+  )
+
+```
