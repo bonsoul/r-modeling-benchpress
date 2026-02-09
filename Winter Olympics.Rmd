@@ -147,3 +147,106 @@ ggplot(duration, aes(x = event_type, y = duration_minutes)) +
 
 ```
 
+```{r}
+schedule %>%
+  count(venue_name, sort = TRUE)
+
+```
+
+```{r}
+schedule %>%
+  count(venue_name) %>%
+  slice_max(n, n = 10) %>%
+  ggplot(aes(x = n, y = reorder(venue_name, n))) +
+  geom_col() +
+  labs(
+    title = "Venues Hosting the Most Events",
+    x = "Number of Events",
+    y = NULL
+  )
+
+```
+
+```{r}
+
+schedule %>%
+  count(venue_name, is_training) %>%
+  group_by(venue_name) %>%
+  mutate(total_events = sum(n)) %>%
+  ungroup() %>%
+  slice_max(total_events, n = 10) %>%
+  mutate(
+    is_training = if_else(is_training, "Training", "Competition"),
+    venue_name = reorder(venue_name, total_events)
+  ) %>%
+  ggplot(aes(x = venue_name, y = n, fill = is_training)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Training vs Competition Sessions by Venue (Top 10)",
+    x = NULL,
+    y = "Number of Sessions",
+    fill = "Session Type"
+  )
+
+
+```
+
+#How does the schedule vary by day of the week?
+
+```{r}
+schedule <- schedule %>%
+  mutate(
+    day_of_week = factor(
+      day_of_week,
+      levels = c("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")
+    )
+  )
+
+```
+
+```{r}
+schedule %>% count(day_of_week)
+```
+
+```{r}
+schedule %>%
+  count(day_of_week) %>%
+  ggplot(aes(x = day_of_week, y = n)) +
+  geom_col() +
+  labs(
+    title = "Events by Day of the Week",
+    x = NULL,
+    y = "Number of Events"
+  )
+
+```
+
+```{r}
+schedule %>%
+  mutate(
+    session_type = if_else(is_training, "Training", "Competition")
+  ) %>%
+  count(session_type) %>%
+  mutate(prop = n/sum(n)) %>%
+  flextable()
+
+```
+
+#What proportion of scheduled sessions are training versus competition?
+
+```{r}
+schedule %>%
+  mutate(session_type = if_else(is_training, "Training", "Competition")) %>%
+  count(session_type) %>%
+  ggplot(aes(x = session_type, y = n)) +
+  geom_col() +
+  labs(
+    title = "Training vs Competition Sessions",
+    x = NULL,
+    y = "Number of Sessions"
+  )
+
+
+```
+
